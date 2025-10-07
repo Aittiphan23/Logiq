@@ -183,7 +183,11 @@ async def start_web_server(bot: Logiq):
         app = create_app(bot)
         web_config = bot.config.get('web', {})
         host = web_config.get('host', '0.0.0.0')
-        port = web_config.get('port', 8000)
+
+        # Get port from config (which may be from env var) or Railway's PORT env var
+        port_config = web_config.get('port', 8000)
+        # Handle case where PORT env var is set (Railway uses this)
+        port = int(os.getenv('PORT', port_config if not str(port_config).startswith('${') else 8000))
 
         # Run in background
         config = uvicorn.Config(app, host=host, port=port, log_level="info")

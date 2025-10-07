@@ -78,10 +78,11 @@ modules:
 web:
   enabled: true
   host: "0.0.0.0"
-  port: 8000
+  port: "${PORT}"
   cors_origins:
     - "http://localhost:3000"
     - "https://yourdomain.com"
+    - "https://logiq.up.railway.app"
 
 redis:
   enabled: false
