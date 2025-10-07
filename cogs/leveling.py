@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from utils.embeds import EmbedFactory, EmbedColor
 from utils.constants import calculate_level_xp
+from utils.permissions import is_admin
 from database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -75,54 +76,14 @@ class Leveling(commands.Cog):
         else:
             await self.db.update_user(message.author.id, message.guild.id, {'xp': new_xp})
 
-    @app_commands.command(name="rank", description="View your rank card")
-    @app_commands.describe(user="User to check (optional)")
-    async def rank(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
-        """View rank card"""
-        target = user or interaction.user
+    # NOTE: /rank and /leaderboard commands have been moved to games.py as PUBLIC commands
 
-        user_data = await self.db.get_user(target.id, interaction.guild.id)
-        if not user_data:
-            user_data = await self.db.create_user(target.id, interaction.guild.id)
-
-        # Get rank
-        leaderboard = await self.db.get_leaderboard(interaction.guild.id, limit=1000)
-        rank = next((i + 1 for i, u in enumerate(leaderboard) if u['user_id'] == target.id), 0)
-
-        level = user_data.get('level', 0)
-        xp = user_data.get('xp', 0)
-        next_level_xp = calculate_level_xp(level + 1)
-
-        embed = EmbedFactory.rank_card(target, level, xp, rank, next_level_xp)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="leaderboard", description="View XP leaderboard")
-    async def leaderboard(self, interaction: discord.Interaction):
-        """View leaderboard"""
-        leaderboard = await self.db.get_leaderboard(interaction.guild.id, limit=10)
-
-        if not leaderboard:
-            await interaction.response.send_message(
-                embed=EmbedFactory.info("No Data", "No leaderboard data available"),
-                ephemeral=True
-            )
-            return
-
-        embed = EmbedFactory.leaderboard(
-            "XP Leaderboard",
-            leaderboard,
-            field_name="xp",
-            color=EmbedColor.LEVELING
-        )
-
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="setlevel", description="Set user's level (Admin only)")
+    @app_commands.command(name="setlevel", description="Set user's level (Admin)")
     @app_commands.describe(
         user="User to modify",
         level="New level"
     )
-    @app_commands.checks.has_permissions(administrator=True)
+    @is_admin()
     async def set_level(
         self,
         interaction: discord.Interaction,
@@ -151,8 +112,8 @@ class Leveling(commands.Cog):
         await interaction.response.send_message(embed=embed)
         logger.info(f"{interaction.user} set {user}'s level to {level}")
 
-    @app_commands.command(name="resetlevels", description="Reset all levels (Admin only)")
-    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.command(name="resetlevels", description="Reset all levels (Admin)")
+    @is_admin()
     async def reset_levels(self, interaction: discord.Interaction):
         """Reset all levels in guild"""
         # This would require a bulk update - implementing basic version

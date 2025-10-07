@@ -12,6 +12,7 @@ import logging
 import random
 
 from utils.embeds import EmbedFactory, EmbedColor
+from utils.permissions import is_admin
 from database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -28,22 +29,10 @@ class Economy(commands.Cog):
         self.currency_symbol = self.module_config.get('currency_symbol', '💎')
         self.currency_name = self.module_config.get('currency_name', 'ProgrammiCoin')
 
-    @app_commands.command(name="balance", description="Check your balance")
-    @app_commands.describe(user="User to check (optional)")
-    async def balance(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
-        """Check balance"""
-        target = user or interaction.user
+    # NOTE: /balance command has been moved to games.py as PUBLIC command
 
-        user_data = await self.db.get_user(target.id, interaction.guild.id)
-        if not user_data:
-            user_data = await self.db.create_user(target.id, interaction.guild.id)
-
-        balance = user_data.get('balance', 0)
-        embed = EmbedFactory.economy_balance(target, balance, self.currency_symbol)
-
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="daily", description="Claim your daily reward")
+    @app_commands.command(name="daily", description="Claim your daily reward (Admin)")
+    @is_admin()
     async def daily(self, interaction: discord.Interaction):
         """Claim daily reward"""
         user_data = await self.db.get_user(interaction.user.id, interaction.guild.id)
@@ -82,11 +71,12 @@ class Economy(commands.Cog):
         await interaction.response.send_message(embed=embed)
         logger.info(f"{interaction.user} claimed daily reward in {interaction.guild}")
 
-    @app_commands.command(name="give", description="Give currency to another user")
+    @app_commands.command(name="give", description="Give currency to another user (Admin)")
     @app_commands.describe(
         user="User to give to",
         amount="Amount to give"
     )
+    @is_admin()
     async def give(self, interaction: discord.Interaction, user: discord.Member, amount: int):
         """Give currency to user"""
         if amount <= 0:
@@ -133,11 +123,12 @@ class Economy(commands.Cog):
         await interaction.response.send_message(embed=embed)
         logger.info(f"{interaction.user} gave {amount} to {user}")
 
-    @app_commands.command(name="coinflip", description="Flip a coin and bet currency")
+    @app_commands.command(name="coinflip-bet", description="Flip a coin and bet currency (Admin)")
     @app_commands.describe(
         amount="Amount to bet",
         choice="Heads or Tails"
     )
+    @is_admin()
     async def coinflip(self, interaction: discord.Interaction, amount: int, choice: str):
         """Coinflip gambling"""
         if amount <= 0:
@@ -195,7 +186,8 @@ class Economy(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="shop", description="View the server shop")
+    @app_commands.command(name="shop", description="View the server shop (Admin)")
+    @is_admin()
     async def shop(self, interaction: discord.Interaction):
         """View shop"""
         items = await self.db.get_shop_items(interaction.guild.id)
@@ -220,19 +212,19 @@ class Economy(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="addbalance", description="Add balance to user (Admin only)")
+    @app_commands.command(name="addbalance", description="Add balance to user (Admin)")
     @app_commands.describe(
         user="User to add balance to",
         amount="Amount to add"
     )
-    @app_commands.checks.has_permissions(administrator=True)
+    @is_admin()
     async def add_balance_admin(
         self,
         interaction: discord.Interaction,
         user: discord.Member,
         amount: int
     ):
-        """Add balance to user (admin)"""
+        """Add balance to user (ADMIN ONLY)"""
         await self.db.add_balance(user.id, interaction.guild.id, amount)
 
         embed = EmbedFactory.success(

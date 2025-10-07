@@ -13,6 +13,7 @@ import asyncio
 
 from utils.embeds import EmbedFactory, EmbedColor
 from utils.converters import TimeConverter
+from utils.permissions import is_admin
 from database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -124,7 +125,7 @@ class Utility(commands.Cog):
                 logger.error(f"Error in reminder checker: {e}", exc_info=True)
                 await asyncio.sleep(60)
 
-    @app_commands.command(name="poll", description="Create a poll")
+    @app_commands.command(name="poll", description="Create a poll (Admin)")
     @app_commands.describe(
         question="Poll question",
         option1="Option 1",
@@ -133,6 +134,7 @@ class Utility(commands.Cog):
         option4="Option 4 (optional)",
         duration="Duration in minutes (default: 60)"
     )
+    @is_admin()
     async def poll(
         self,
         interaction: discord.Interaction,
@@ -170,11 +172,12 @@ class Utility(commands.Cog):
         await interaction.response.send_message(embed=embed, view=view)
         logger.info(f"{interaction.user} created poll in {interaction.guild}")
 
-    @app_commands.command(name="remind", description="Set a reminder")
+    @app_commands.command(name="remind", description="Set a reminder (Admin)")
     @app_commands.describe(
         duration="When to remind (e.g., 1h, 30m, 1d)",
         message="Reminder message"
     )
+    @is_admin()
     async def remind(self, interaction: discord.Interaction, duration: str, message: str):
         """Set a reminder"""
         seconds = TimeConverter.parse(duration)
@@ -213,7 +216,8 @@ class Utility(commands.Cog):
         await interaction.response.send_message(embed=embed)
         logger.info(f"{interaction.user} set reminder in {interaction.guild}")
 
-    @app_commands.command(name="serverstats", description="View server statistics")
+    @app_commands.command(name="serverstats", description="View server statistics (Admin)")
+    @is_admin()
     async def serverstats(self, interaction: discord.Interaction):
         """View server stats"""
         guild = interaction.guild
@@ -245,8 +249,9 @@ class Utility(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="userinfo", description="Get information about a user")
+    @app_commands.command(name="userinfo", description="Get information about a user (Admin)")
     @app_commands.describe(user="User to get info about")
+    @is_admin()
     async def userinfo(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
         """Get user information"""
         target = user or interaction.user
@@ -273,8 +278,9 @@ class Utility(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="avatar", description="Get user's avatar")
+    @app_commands.command(name="avatar", description="Get user's avatar (Admin)")
     @app_commands.describe(user="User to get avatar from")
+    @is_admin()
     async def avatar(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
         """Get user avatar"""
         target = user or interaction.user

@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(del Dockerfile docker-compose.yml .dockerignore)"
+      "Bash(del Dockerfile docker-compose.yml .dockerignore)",
+      "Bash(del IMPLEMENTATION_PLAN.md)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,6 @@
 """
 Games Cog for Logiq
-Interactive mini-games
+Button-based interactive mini-games for users
 """
 
 import discord
@@ -11,9 +11,169 @@ import logging
 import random
 
 from utils.embeds import EmbedFactory, EmbedColor
+from utils.permissions import is_admin
 from database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
+
+
+class DiceGameView(discord.ui.View):
+    """Button-based dice game"""
+
+    def __init__(self, cog):
+        super().__init__(timeout=None)
+        self.cog = cog
+
+    @discord.ui.button(label="🎲 Roll Dice", style=discord.ButtonStyle.primary, custom_id="dice_roll")
+    async def roll_dice(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Roll a dice"""
+        result = random.randint(1, 6)
+
+        embed = EmbedFactory.create(
+            title="🎲 Dice Roll",
+            description=f"{interaction.user.mention} rolled:\n\n# {result}",
+            color=EmbedColor.INFO
+        )
+
+        await interaction.response.send_message(embed=embed)
+
+
+class CoinFlipView(discord.ui.View):
+    """Button-based coinflip game"""
+
+    def __init__(self, cog):
+        super().__init__(timeout=None)
+        self.cog = cog
+
+    @discord.ui.button(label="🪙 Heads", style=discord.ButtonStyle.success, custom_id="coin_heads")
+    async def flip_heads(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Bet on heads"""
+        await self._flip_coin(interaction, "heads")
+
+    @discord.ui.button(label="🪙 Tails", style=discord.ButtonStyle.danger, custom_id="coin_tails")
+    async def flip_tails(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Bet on tails"""
+        await self._flip_coin(interaction, "tails")
+
+    async def _flip_coin(self, interaction: discord.Interaction, choice: str):
+        """Flip coin logic"""
+        result = random.choice(["heads", "tails"])
+        won = result == choice
+
+        if won:
+            embed = EmbedFactory.success(
+                "🎉 You Won!",
+                f"{interaction.user.mention} bet on **{choice}** and the coin landed on **{result}**!"
+            )
+        else:
+            embed = EmbedFactory.error(
+                "You Lost!",
+                f"{interaction.user.mention} bet on **{choice}** but the coin landed on **{result}**!"
+            )
+
+        await interaction.response.send_message(embed=embed)
+
+
+class TriviaView(discord.ui.View):
+    """Button-based trivia game"""
+
+    def __init__(self, cog, question_data):
+        super().__init__(timeout=30)
+        self.cog = cog
+        self.question_data = question_data
+        self.answered = False
+
+        # Create buttons for each option
+        for i, option in enumerate(question_data['options']):
+            button = discord.ui.Button(
+                label=option,
+                style=discord.ButtonStyle.primary,
+                custom_id=f"trivia_{i}"
+            )
+            button.callback = self._make_callback(i)
+            self.add_item(button)
+
+    def _make_callback(self, option_index):
+        async def callback(interaction: discord.Interaction):
+            if self.answered:
+                await interaction.response.send_message("This trivia has been answered!", ephemeral=True)
+                return
+
+            self.answered = True
+            correct = option_index == self.question_data['answer']
+
+            if correct:
+                await self.cog.db.add_balance(interaction.user.id, interaction.guild.id, 50)
+                embed = EmbedFactory.success(
+                    "Correct! 🎉",
+                    f"{interaction.user.mention} got it right!\nYou earned **💎 50**!"
+                )
+            else:
+                correct_answer = self.question_data['options'][self.question_data['answer']]
+                embed = EmbedFactory.error(
+                    "Incorrect! ❌",
+                    f"The correct answer was: **{correct_answer}**"
+                )
+
+            for child in self.children:
+                child.disabled = True
+
+            await interaction.response.edit_message(view=self)
+            await interaction.followup.send(embed=embed)
+
+        return callback
+
+
+class EightBallView(discord.ui.View):
+    """Button-based 8ball game"""
+
+    def __init__(self, cog):
+        super().__init__(timeout=None)
+        self.cog = cog
+
+    @discord.ui.button(label="🔮 Ask the Magic 8-Ball", style=discord.ButtonStyle.primary, custom_id="8ball_ask")
+    async def ask_8ball(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Ask 8ball"""
+        responses = [
+            "Yes, definitely!", "It is certain.", "Without a doubt.",
+            "Most likely.", "Outlook good.", "Signs point to yes.",
+            "Reply hazy, try again.", "Ask again later.",
+            "Cannot predict now.", "Don't count on it.",
+            "My reply is no.", "Outlook not so good.", "Very doubtful."
+        ]
+
+        response = random.choice(responses)
+
+        embed = EmbedFactory.create(
+            title="🔮 Magic 8-Ball",
+            description=f"{interaction.user.mention} asked the Magic 8-Ball...\n\n**Answer:** {response}",
+            color=EmbedColor.INFO
+        )
+
+        await interaction.response.send_message(embed=embed)
+
+
+class TriviaStartView(discord.ui.View):
+    """Button to start trivia"""
+
+    def __init__(self, cog):
+        super().__init__(timeout=None)
+        self.cog = cog
+
+    @discord.ui.button(label="🧠 Play Trivia", style=discord.ButtonStyle.success, custom_id="trivia_start")
+    async def start_trivia(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Start a trivia game"""
+        question_data = random.choice(self.cog.trivia_questions)
+
+        embed = EmbedFactory.create(
+            title="🎯 Trivia Time!",
+            description=f"**{question_data['question']}**",
+            color=EmbedColor.INFO
+        )
+        embed.set_footer(text="You have 30 seconds to answer! Win 💎 50 for correct answer!")
+
+        view = TriviaView(self.cog, question_data)
+        await interaction.response.send_message(embed=embed, view=view)
 
 
 class Games(commands.Cog):
@@ -56,209 +216,97 @@ class Games(commands.Cog):
             }
         ]
 
-    @app_commands.command(name="trivia", description="Play a trivia game")
-    async def trivia(self, interaction: discord.Interaction):
-        """Start trivia game"""
-        if not self.module_config.get('enabled', True):
-            await interaction.response.send_message(
-                embed=EmbedFactory.error("Module Disabled", "Games module is currently disabled"),
-                ephemeral=True
-            )
-            return
-
-        # Select random question
-        question_data = random.choice(self.trivia_questions)
-
+    @app_commands.command(name="setup-game-panel", description="Setup game panel with buttons for users (Admin)")
+    @is_admin()
+    async def setup_game_panel(self, interaction: discord.Interaction):
+        """Setup game panel"""
         embed = EmbedFactory.create(
-            title="🎯 Trivia Time!",
-            description=f"**{question_data['question']}**\n\n" +
-                       "\n".join([f"{i + 1}. {opt}" for i, opt in enumerate(question_data['options'])]),
+            title="🎮 Game Center",
+            description="Click the buttons below to play games!\n\n"
+                       "🎲 **Dice** - Roll a dice\n"
+                       "🪙 **Coinflip** - Flip a coin\n"
+                       "🧠 **Trivia** - Test your knowledge (Win 💎 50!)\n"
+                       "🔮 **8-Ball** - Ask a question",
             color=EmbedColor.INFO
         )
-        embed.set_footer(text="You have 30 seconds to answer!")
 
-        # Create buttons
-        view = TriviaView(question_data['answer'], self)
-        await interaction.response.send_message(embed=embed, view=view)
+        # Create dice panel
+        await interaction.channel.send(embed=embed)
 
-    @app_commands.command(name="roulette", description="Play roulette with currency")
-    @app_commands.describe(
-        bet="Amount to bet",
-        choice="Your bet (number 0-36, red, black, odd, even)"
-    )
-    async def roulette(self, interaction: discord.Interaction, bet: int, choice: str):
-        """Play roulette"""
-        if bet <= 0:
-            await interaction.response.send_message(
-                embed=EmbedFactory.error("Invalid Bet", "Bet must be positive"),
-                ephemeral=True
-            )
-            return
+        # Dice game
+        dice_embed = EmbedFactory.create(title="🎲 Dice Game", description="Click to roll a dice!", color=EmbedColor.INFO)
+        await interaction.channel.send(embed=dice_embed, view=DiceGameView(self))
 
-        # Check balance
-        user_data = await self.db.get_user(interaction.user.id, interaction.guild.id)
+        # Coinflip game
+        coin_embed = EmbedFactory.create(title="🪙 Coinflip", description="Pick heads or tails!", color=EmbedColor.INFO)
+        await interaction.channel.send(embed=coin_embed, view=CoinFlipView(self))
+
+        # Trivia game
+        trivia_embed = EmbedFactory.create(title="🧠 Trivia Game", description="Test your knowledge! Win 💎 50!", color=EmbedColor.SUCCESS)
+        await interaction.channel.send(embed=trivia_embed, view=TriviaStartView(self))
+
+        # 8-Ball
+        ball_embed = EmbedFactory.create(title="🔮 Magic 8-Ball", description="Ask the magic 8-ball a question!", color=EmbedColor.INFO)
+        await interaction.channel.send(embed=ball_embed, view=EightBallView(self))
+
+        await interaction.response.send_message(
+            embed=EmbedFactory.success("Game Panel Created", "Users can now play games by clicking buttons!"),
+            ephemeral=True
+        )
+
+        logger.info(f"Game panel created in {interaction.guild}")
+
+    # Public commands for viewing stats
+    @app_commands.command(name="rank", description="View your rank card")
+    @app_commands.describe(user="User to check (optional)")
+    async def rank(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
+        """View rank card - PUBLIC"""
+        target = user or interaction.user
+
+        user_data = await self.db.get_user(target.id, interaction.guild.id)
         if not user_data:
-            user_data = await self.db.create_user(interaction.user.id, interaction.guild.id)
+            user_data = await self.db.create_user(target.id, interaction.guild.id)
 
-        if user_data.get('balance', 0) < bet:
+        leaderboard = await self.db.get_leaderboard(interaction.guild.id, limit=1000)
+        rank = next((i + 1 for i, u in enumerate(leaderboard) if u['user_id'] == target.id), 0)
+
+        from utils.constants import calculate_level_xp
+        level = user_data.get('level', 0)
+        xp = user_data.get('xp', 0)
+        next_level_xp = calculate_level_xp(level + 1)
+
+        embed = EmbedFactory.rank_card(target, level, xp, rank, next_level_xp)
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="balance", description="Check your balance")
+    @app_commands.describe(user="User to check (optional)")
+    async def balance(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
+        """Check balance - PUBLIC"""
+        target = user or interaction.user
+
+        user_data = await self.db.get_user(target.id, interaction.guild.id)
+        if not user_data:
+            user_data = await self.db.create_user(target.id, interaction.guild.id)
+
+        balance = user_data.get('balance', 0)
+        embed = EmbedFactory.economy_balance(target, balance, "💎")
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="leaderboard", description="View server leaderboard")
+    async def leaderboard(self, interaction: discord.Interaction):
+        """View leaderboard - PUBLIC"""
+        leaderboard = await self.db.get_leaderboard(interaction.guild.id, limit=10)
+
+        if not leaderboard:
             await interaction.response.send_message(
-                embed=EmbedFactory.error("Insufficient Funds", "You don't have enough currency"),
+                embed=EmbedFactory.info("No Data", "No leaderboard data available"),
                 ephemeral=True
             )
             return
 
-        # Spin roulette
-        result = random.randint(0, 36)
-        is_red = result in [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
-        is_black = result != 0 and not is_red
-        is_odd = result % 2 == 1
-        is_even = result % 2 == 0 and result != 0
-
-        won = False
-        payout = 0
-        choice = choice.lower()
-
-        if choice.isdigit() and int(choice) == result:
-            won = True
-            payout = bet * 35
-        elif choice == "red" and is_red:
-            won = True
-            payout = bet
-        elif choice == "black" and is_black:
-            won = True
-            payout = bet
-        elif choice == "odd" and is_odd:
-            won = True
-            payout = bet
-        elif choice == "even" and is_even:
-            won = True
-            payout = bet
-
-        if won:
-            await self.db.add_balance(interaction.user.id, interaction.guild.id, payout)
-            embed = EmbedFactory.success(
-                "🎉 You Won!",
-                f"The ball landed on **{result}** ({'Red' if is_red else 'Black' if is_black else 'Green'})!\n\n"
-                f"You won **💎 {payout:,}**!"
-            )
-        else:
-            await self.db.remove_balance(interaction.user.id, interaction.guild.id, bet)
-            embed = EmbedFactory.error(
-                "You Lost!",
-                f"The ball landed on **{result}** ({'Red' if is_red else 'Black' if is_black else 'Green'})!\n\n"
-                f"You lost **💎 {bet:,}**!"
-            )
-
+        embed = EmbedFactory.leaderboard("XP Leaderboard", leaderboard, field_name="xp", color=EmbedColor.LEVELING)
         await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="dice", description="Roll dice")
-    @app_commands.describe(sides="Number of sides (default: 6)")
-    async def dice(self, interaction: discord.Interaction, sides: int = 6):
-        """Roll dice"""
-        if sides < 2 or sides > 100:
-            await interaction.response.send_message(
-                embed=EmbedFactory.error("Invalid Dice", "Sides must be between 2 and 100"),
-                ephemeral=True
-            )
-            return
-
-        result = random.randint(1, sides)
-
-        embed = EmbedFactory.create(
-            title="🎲 Dice Roll",
-            description=f"You rolled a **d{sides}** and got:\n\n# {result}",
-            color=EmbedColor.INFO
-        )
-
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="8ball", description="Ask the magic 8-ball")
-    @app_commands.describe(question="Your question")
-    async def eightball(self, interaction: discord.Interaction, question: str):
-        """Magic 8-ball"""
-        responses = [
-            "Yes, definitely!",
-            "It is certain.",
-            "Without a doubt.",
-            "Most likely.",
-            "Outlook good.",
-            "Signs point to yes.",
-            "Reply hazy, try again.",
-            "Ask again later.",
-            "Better not tell you now.",
-            "Cannot predict now.",
-            "Concentrate and ask again.",
-            "Don't count on it.",
-            "My reply is no.",
-            "My sources say no.",
-            "Outlook not so good.",
-            "Very doubtful."
-        ]
-
-        response = random.choice(responses)
-
-        embed = EmbedFactory.create(
-            title="🎱 Magic 8-Ball",
-            description=f"**Question:** {question}\n\n**Answer:** {response}",
-            color=EmbedColor.INFO
-        )
-
-        await interaction.response.send_message(embed=embed)
-
-
-class TriviaView(discord.ui.View):
-    """View for trivia game"""
-
-    def __init__(self, correct_answer: int, cog: Games):
-        super().__init__(timeout=30)
-        self.correct_answer = correct_answer
-        self.cog = cog
-        self.answered = False
-
-    @discord.ui.button(label="1", style=discord.ButtonStyle.primary)
-    async def option_1(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self._check_answer(interaction, 0)
-
-    @discord.ui.button(label="2", style=discord.ButtonStyle.primary)
-    async def option_2(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self._check_answer(interaction, 1)
-
-    @discord.ui.button(label="3", style=discord.ButtonStyle.primary)
-    async def option_3(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self._check_answer(interaction, 2)
-
-    @discord.ui.button(label="4", style=discord.ButtonStyle.primary)
-    async def option_4(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self._check_answer(interaction, 3)
-
-    async def _check_answer(self, interaction: discord.Interaction, answer: int):
-        """Check if answer is correct"""
-        if self.answered:
-            await interaction.response.send_message("This trivia has already been answered!", ephemeral=True)
-            return
-
-        self.answered = True
-        correct = answer == self.correct_answer
-
-        if correct:
-            # Award currency
-            await self.cog.db.add_balance(interaction.user.id, interaction.guild.id, 50)
-            embed = EmbedFactory.success(
-                "Correct! 🎉",
-                f"{interaction.user.mention} got it right!\nYou earned **💎 50**!"
-            )
-        else:
-            embed = EmbedFactory.error(
-                "Incorrect! ❌",
-                f"The correct answer was **{self.correct_answer + 1}**!"
-            )
-
-        # Disable all buttons
-        for child in self.children:
-            child.disabled = True
-
-        await interaction.response.edit_message(view=self)
-        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):

@@ -5,10 +5,12 @@ REST API endpoints for bot statistics and management
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +34,35 @@ def create_app(bot) -> FastAPI:
         allow_headers=["*"],
     )
 
-    @app.get("/")
+    @app.get("/", response_class=HTMLResponse)
     async def root():
-        """Root endpoint"""
-        return {
-            "name": "Logiq API",
-            "version": "1.0.0",
-            "status": "online",
-            "bot_user": str(bot.user) if bot.user else None
-        }
+        """Admin Dashboard Homepage"""
+        html_file = os.path.join(os.path.dirname(__file__), "templates", "index.html")
+        if os.path.exists(html_file):
+            with open(html_file, "r", encoding="utf-8") as f:
+                return f.read()
+        return """
+        <html>
+            <head><title>Logiq Admin Dashboard</title></head>
+            <body>
+                <h1>Logiq API</h1>
+                <p>Version: 1.0.0</p>
+                <p>Status: Online</p>
+                <p>Bot User: {}</p>
+                <p><a href="/admin">Go to Admin Dashboard</a></p>
+            </body>
+        </html>
+        """.format(str(bot.user) if bot.user else "Loading...")
+
+    @app.get("/admin", response_class=HTMLResponse)
+    async def admin_dashboard():
+        """Admin Dashboard"""
+        html_file = os.path.join(os.path.dirname(__file__), "templates", "admin.html")
+        if os.path.exists(html_file):
+            with open(html_file, "r", encoding="utf-8") as f:
+                return f.read()
+        # Return fallback if template doesn't exist
+        return "<h1>Admin Dashboard - Template not found</h1>"
 
     @app.get("/stats")
     async def get_stats():

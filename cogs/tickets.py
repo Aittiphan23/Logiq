@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class TicketCreateView(discord.ui.View):
-    """View for creating tickets"""
+    """Persistent view for creating tickets"""
 
     def __init__(self, cog: 'Tickets'):
         super().__init__(timeout=None)
@@ -27,6 +27,19 @@ class TicketCreateView(discord.ui.View):
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Handle ticket creation"""
         await self.cog.create_ticket_for_user(interaction)
+
+
+class TicketControlView(discord.ui.View):
+    """Persistent view for ticket controls"""
+
+    def __init__(self, cog: 'Tickets'):
+        super().__init__(timeout=None)
+        self.cog = cog
+
+    @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.danger, custom_id="close_ticket_btn", emoji="🔒")
+    async def close_ticket_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Handle ticket closing via button"""
+        await self.cog.close_ticket_for_user(interaction, "Closed by user")
 
 
 class Tickets(commands.Cog):
@@ -113,7 +126,7 @@ class Tickets(commands.Cog):
             }
             ticket_id = await self.db.create_ticket(ticket_data)
 
-            # Send welcome message
+            # Send welcome message with close button
             embed = EmbedFactory.create(
                 title="🎫 Support Ticket",
                 description=f"Hello {interaction.user.mention}!\n\n"
@@ -122,7 +135,10 @@ class Tickets(commands.Cog):
                            f"**Ticket ID:** {ticket_id}",
                 color=EmbedColor.SUCCESS
             )
-            await channel.send(embed=embed)
+
+            # Add close button
+            close_view = TicketControlView(self)
+            await channel.send(embed=embed, view=close_view)
 
             await interaction.response.send_message(
                 embed=EmbedFactory.success(
@@ -140,71 +156,34 @@ class Tickets(commands.Cog):
                 ephemeral=True
             )
 
-    @app_commands.command(name="ticket-setup", description="Setup ticket system")
-    @app_commands.describe(
-        category="Category for ticket channels",
-        support_role="Role to ping for new tickets (optional)"
-    )
-    @is_admin()
-    async def ticket_setup(
-        self,
-        interaction: discord.Interaction,
-        category: discord.CategoryChannel,
-        support_role: Optional[discord.Role] = None
-    ):
-        """Setup ticket system"""
-        guild_config = await self.db.get_guild(interaction.guild.id)
-        if not guild_config:
-            guild_config = await self.db.create_guild(interaction.guild.id)
-
-        update_data = {'ticket_category': category.id}
-        if support_role:
-            update_data['support_role'] = support_role.id
-
-        await self.db.update_guild(interaction.guild.id, update_data)
-
-        embed = EmbedFactory.success(
-            "Ticket System Setup",
-            f"✅ Category: {category.mention}\n" +
-            (f"✅ Support Role: {support_role.mention}" if support_role else "")
-        )
-        await interaction.response.send_message(embed=embed)
-        logger.info(f"Ticket system setup in {interaction.guild}")
-
-    @app_commands.command(name="ticket-panel", description="Send ticket creation panel")
-    @is_admin()
-    async def ticket_panel(self, interaction: discord.Interaction):
-        """Send ticket panel"""
-        embed = EmbedFactory.create(
-            title="🎫 Support Tickets",
-            description="Need help? Click the button below to create a support ticket!\n\n"
-                       "A private channel will be created where you can discuss your issue with staff.",
-            color=EmbedColor.PRIMARY
-        )
-
-        view = TicketCreateView(self)
-        await interaction.channel.send(embed=embed, view=view)
-
-        await interaction.response.send_message(
-            embed=EmbedFactory.success("Panel Sent", "Ticket panel created!"),
-            ephemeral=True
-        )
-
-    @app_commands.command(name="close-ticket", description="Close a ticket")
-    @app_commands.describe(reason="Reason for closing")
-    async def close_ticket(self, interaction: discord.Interaction, reason: Optional[str] = "Resolved"):
-        """Close a ticket"""
+    async def close_ticket_for_user(self, interaction: discord.Interaction, reason: str = "Resolved"):
+        """Close a ticket (called from button or command)"""
         # Check if in ticket channel
         if not interaction.channel.name.startswith("ticket-"):
             await interaction.response.send_message(
-                embed=EmbedFactory.error("Not a Ticket", "This command can only be used in ticket channels"),
+                embed=EmbedFactory.error("Not a Ticket", "This can only be used in ticket channels"),
+                ephemeral=True
+            )
+            return
+
+        # Check if user is ticket owner or has admin permissions
+        guild_config = await self.db.get_guild(interaction.guild.id)
+        support_role_id = guild_config.get('support_role') if guild_config else None
+
+        is_ticket_owner = interaction.channel.name == f"ticket-{interaction.user.name}"
+        is_admin = interaction.user.guild_permissions.administrator
+        has_support_role = support_role_id and interaction.guild.get_role(support_role_id) in interaction.user.roles
+
+        if not (is_ticket_owner or is_admin or has_support_role):
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("No Permission", "Only the ticket owner or staff can close this ticket"),
                 ephemeral=True
             )
             return
 
         embed = EmbedFactory.warning(
-            "Ticket Closing",
-            f"This ticket is being closed.\n\n**Reason:** {reason}\n\n"
+            "🔒 Ticket Closing",
+            f"This ticket is being closed by {interaction.user.mention}.\n\n**Reason:** {reason}\n\n"
             f"Channel will be deleted in 10 seconds..."
         )
         await interaction.response.send_message(embed=embed)
@@ -217,6 +196,62 @@ class Tickets(commands.Cog):
             await interaction.channel.delete()
         except discord.Forbidden:
             pass
+
+    @app_commands.command(name="ticket-setup", description="Setup ticket system (Admin)")
+    @app_commands.describe(
+        category="Category for ticket channels",
+        support_role="Role to ping for new tickets (optional)"
+    )
+    @is_admin()
+    async def ticket_setup(
+        self,
+        interaction: discord.Interaction,
+        category: discord.CategoryChannel,
+        support_role: Optional[discord.Role] = None
+    ):
+        """Setup ticket system (ADMIN ONLY)"""
+        guild_config = await self.db.get_guild(interaction.guild.id)
+        if not guild_config:
+            guild_config = await self.db.create_guild(interaction.guild.id)
+
+        update_data = {'ticket_category': category.id}
+        if support_role:
+            update_data['support_role'] = support_role.id
+
+        await self.db.update_guild(interaction.guild.id, update_data)
+
+        embed = EmbedFactory.success(
+            "✅ Ticket System Setup",
+            f"**Category:** {category.mention}\n" +
+            (f"**Support Role:** {support_role.mention}" if support_role else "")
+        )
+        await interaction.response.send_message(embed=embed)
+        logger.info(f"Ticket system setup in {interaction.guild}")
+
+    @app_commands.command(name="ticket-panel", description="Send ticket creation panel (Admin)")
+    @is_admin()
+    async def ticket_panel(self, interaction: discord.Interaction):
+        """Send persistent ticket panel (ADMIN ONLY)"""
+        embed = EmbedFactory.create(
+            title="🎫 Support Tickets",
+            description="Need help? Click the button below to create a support ticket!\n\n"
+                       "A private channel will be created where you can discuss your issue with staff.",
+            color=EmbedColor.PRIMARY
+        )
+
+        view = TicketCreateView(self)
+        await interaction.channel.send(embed=embed, view=view)
+
+        await interaction.response.send_message(
+            embed=EmbedFactory.success("Panel Sent", "Ticket panel created with persistent button!"),
+            ephemeral=True
+        )
+
+    @app_commands.command(name="close-ticket", description="Close a ticket (Admin/Staff)")
+    @app_commands.describe(reason="Reason for closing")
+    async def close_ticket(self, interaction: discord.Interaction, reason: Optional[str] = "Resolved"):
+        """Close a ticket (ADMIN/STAFF ONLY)"""
+        await self.close_ticket_for_user(interaction, reason)
 
 
 async def setup(bot: commands.Bot):
