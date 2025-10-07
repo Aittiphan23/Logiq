@@ -1,441 +1,367 @@
-# 🤖 Logiq
+# 🤖 Logiq - Discord Bot
 
-**AI-Enhanced Discord Bot for Community Management, Productivity, and Entertainment**
+**Professional Discord Bot for Community Management**
 
-[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
-[![Discord.py](https://img.shields.io/badge/discord.py-2.4.0-blue)](https://github.com/Rapptz/discord.py)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-
----
-
-## 🌟 Features
-
-### 🔐 Verification System
-- Button-based verification
-- CAPTCHA verification
-- Custom welcome messages
-- Automatic role assignment
-
-### 🛡️ Moderation
-- **Commands**: `/warn`, `/mute`, `/kick`, `/ban`, `/unban`, `/timeout`
-- AI-powered auto-moderation
-- Spam detection
-- Toxicity filtering
-- Comprehensive logging
-
-### 🎭 Roles
-- Self-assignable role menus
-- Reaction roles
-- Role information commands
-- Temporary roles
-
-### 📈 Leveling System
-- XP from messages and voice activity
-- Custom rank cards
-- Leaderboards
-- Level-up notifications
-
-### 💎 Economy
-- Virtual currency (ProgrammiCoins)
-- Daily rewards
-- Shop system
-- Gambling games (coinflip, roulette)
-- User-to-user transactions
-
-### 🤖 AI Integration
-- AI chatbot (OpenAI/Anthropic)
-- Conversation summarization
-- Content moderation
-- Smart auto-responses
-
-### 🎵 Music (Placeholder)
-- YouTube/Spotify playback
-- Queue management
-- Audio controls
-
-### 🎫 Tickets
-- Support ticket system
-- Private ticket channels
-- Category-based organization
-
-### 📊 Analytics
-- Server statistics
-- Activity tracking
-- Growth metrics
-- User engagement analytics
-
-### 🎮 Games
-- Trivia
-- Roulette
-- Coinflip
-- Dice rolling
-- Magic 8-ball
-
-### ⚙️ Utility
-- Polls
-- Reminders
-- Server/User info
-- Avatar display
-
-### 🔧 Admin
-- Module management
-- Command syncing
-- Cog reloading
-- Configuration viewing
+Owned and operated by **Programmify** - All rights reserved.
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- Python 3.11+
-- MongoDB 7.0+
-- Discord Bot Token
-- OpenAI API Key (optional, for AI features)
-
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone https://github.com/iamkavod/Logiq.git
-cd Logiq
-```
-
-2. **Create virtual environment**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies**
+### 1. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Configure environment**
-```bash
-cp .env.example .env
-# Edit .env with your tokens and configuration
+### 2. Setup Environment
+
+Create `.env` file:
+```env
+DISCORD_BOT_TOKEN=your_discord_bot_token
+MONGODB_URI=mongodb://localhost:27017
+ENVIRONMENT=development
 ```
 
-5. **Update config.yaml**
-```yaml
-# Edit config.yaml with your server-specific settings
-```
-
-6. **Run the bot**
+### 3. Run Bot
 ```bash
 python main.py
 ```
 
 ---
 
-## 🐳 Docker Deployment
+## 📦 Features
 
-### Using Docker Compose (Recommended)
+### 🔐 Verification System
+- **DM-based verification** - Private verification via DMs
+- **No public announcements** - Silent role assignment
+- **Custom welcome messages** - Personalized greetings
+- **Button or CAPTCHA** - Flexible verification methods
 
-1. **Configure environment**
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+### 🎮 Button-Based Games
+- **Dice Roll** - Roll dice with buttons
+- **Coinflip** - Heads or tails betting
+- **Trivia** - Multiple choice questions
+- **8-Ball** - Magic 8-ball predictions
+- **Admin Setup** - Deploy game panel with one command
 
-2. **Start all services**
-```bash
-docker-compose up -d
-```
+### 🎫 Ticket System
+- **Persistent buttons** - Always-available ticket creation
+- **User-specific** - Private channels for each user
+- **Permission-based** - Only owner/staff can close
+- **Auto-managed** - Clean channel creation and deletion
 
-3. **View logs**
-```bash
-docker-compose logs -f bot
-```
+### 🎭 Role Management (FORM-BASED SETUP!)
+- **Easy form setup** - Create role menus with a Discord form
+- **Custom emojis** - Add emojis to each role option
+- **Custom labels** - Name roles however you want
+- **Custom title & description** - Fully customizable embed
+- **Exclusive roles** - Pick one, others auto-removed
+- **Multi-select** - Choose multiple roles
+- **Beautiful dropdowns** - User-friendly interface
 
-4. **Stop services**
-```bash
-docker-compose down
-```
+### 💰 Economy System
+- Virtual currency with balance tracking
+- Daily rewards and transfers
+- Admin balance management
 
-### Services Included
-- **bot**: Discord bot
-- **mongodb**: MongoDB database
-- **redis**: Redis cache (optional)
+### 📊 Leveling System
+- XP on messages
+- Rank cards and leaderboards
+- Admin level management
+
+### 🛡️ Moderation
+- Warn, kick, ban, timeout
+- Auto-moderation (spam, mentions)
+- Warning tracking
+
+### 🔧 Utility Commands
+- Polls with voting buttons
+- Reminders
+- Server statistics
+- User info and avatars
+
+### 📈 Analytics
+- Message tracking
+- Join/leave analytics
+- Activity monitoring
 
 ---
 
-## 📋 Configuration
+## 🗄️ Database Setup
 
-### Environment Variables (.env)
+### MongoDB Atlas (Recommended)
 
+1. Sign up at https://www.mongodb.com/cloud/atlas
+2. Create free cluster
+3. Get connection string
+4. Update `.env`:
 ```env
-# Discord
-DISCORD_BOT_TOKEN=your_bot_token_here
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/logiq
+```
 
-# Database
-MONGODB_URI=mongodb://localhost:27017
+---
 
-# Environment
+## 🚂 Deploy to Railway
+
+### 1. Push to GitHub
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/yourusername/logiq.git
+git push -u origin main
+```
+
+### 2. Deploy to Railway
+
+1. Go to https://railway.app
+2. Login with GitHub
+3. Click "New Project" → "Deploy from GitHub repo"
+4. Select your repository
+5. Add MongoDB plugin: Click "New" → "Database" → "MongoDB"
+6. Add environment variables:
+```
+DISCORD_BOT_TOKEN=your_token
+MONGODB_URI=${{MongoDB.MONGO_URL}}
 ENVIRONMENT=production
 ```
-
-### Configuration File (config.yaml)
-
-See `config.yaml` for detailed configuration options including:
-- Module enable/disable
-- XP rates and rewards
-- Currency settings
-- AI parameters
-- Auto-moderation rules
+7. Deploy!
 
 ---
 
-## 📚 Commands Reference
+## 🎮 Commands
 
-### Verification
-- `/setup-verification` - Configure verification system
-- `/send-verification` - Send verification message
+### 👥 PUBLIC COMMANDS (Users can use)
+- `/rank [user]` - View rank card
+- `/balance [user]` - Check balance
+- `/leaderboard` - View server leaderboard
 
-### Moderation
-- `/warn <user> <reason>` - Warn a user
-- `/warnings <user>` - View user warnings
-- `/timeout <user> <duration> <reason>` - Timeout user
-- `/kick <user> <reason>` - Kick user
-- `/ban <user> <reason>` - Ban user
-- `/unban <user_id>` - Unban user
+### 🔧 ADMIN COMMANDS (Administrators only)
 
-### Roles
-- `/role-menu <roles>` - Create role selection menu
+#### Verification
+- `/setup-verification <role> [type]` - Setup DM verification
+- `/set-welcome-message <message>` - Custom welcome DM
+- `/send-verification` - Send verification button
+
+#### Tickets
+- `/ticket-setup <category> [role]` - Setup ticket system
+- `/ticket-panel` - Deploy ticket creation button
+- `/close-ticket [reason]` - Close ticket
+
+#### Games
+- `/setup-game-panel` - Deploy all game buttons
+
+#### Roles (FORM-BASED!)
+- `/create-role-menu` - **Opens a form to create role menu!**
+  - Fill in title, description, emojis, and role IDs
+  - Choose exclusive (pick one) or multi-select
+  - Automatically creates beautiful dropdown menu
 - `/addrole <user> <role>` - Add role to user
 - `/removerole <user> <role>` - Remove role from user
-- `/roleinfo <role>` - Get role information
 
-### Leveling
-- `/rank [user]` - View rank card
-- `/leaderboard` - View XP leaderboard
-- `/setlevel <user> <level>` - Set user level (Admin)
-
-### Economy
-- `/balance [user]` - Check balance
+#### Economy
+- `/addbalance <user> <amount>` - Add balance
 - `/daily` - Claim daily reward
-- `/give <user> <amount>` - Give currency
-- `/coinflip <amount> <choice>` - Flip coin
+- `/give <user> <amount>` - Transfer currency
 - `/shop` - View shop
 
-### AI
-- `/ask <question>` - Ask AI a question
-- `/summarize [count]` - Summarize messages
-- `/clear-conversation` - Clear AI history
+#### Leveling
+- `/setlevel <user> <level>` - Set user level
+- `/resetlevels` - Reset all levels
 
-### Utility
+#### Utility
 - `/poll <question> <options>` - Create poll
 - `/remind <duration> <message>` - Set reminder
 - `/serverstats` - Server statistics
 - `/userinfo [user]` - User information
-- `/avatar [user]` - Get user avatar
+- `/avatar [user]` - Get avatar
 
-### Tickets
-- `/ticket-setup <category> [role]` - Setup tickets
-- `/ticket-panel` - Send ticket panel
-- `/close-ticket [reason]` - Close ticket
-
-### Analytics
+#### Analytics
 - `/analytics [days]` - View analytics
-- `/activity` - View recent activity
+- `/activity` - Recent activity
 
-### Games
-- `/trivia` - Play trivia
-- `/roulette <bet> <choice>` - Play roulette
-- `/dice [sides]` - Roll dice
-- `/8ball <question>` - Magic 8-ball
-
-### Admin
-- `/reload <cog>` - Reload cog
-- `/sync` - Sync commands
-- `/modules` - View modules
+#### Admin
 - `/botinfo` - Bot information
 - `/config` - View configuration
+- `/modules` - Module status
+- `/reload <cog>` - Reload cog
+- `/sync` - Sync commands
+- `/setlogchannel <channel>` - Set log channel
 - `/purge <amount>` - Delete messages
+
+### 🛡️ MODERATOR COMMANDS
+- `/warn <user> <reason>` - Warn user
+- `/warnings <user>` - View warnings
+- `/timeout <user> <duration>` - Timeout user
+- `/kick <user> <reason>` - Kick user
+- `/ban <user> <reason>` - Ban user
+- `/unban <user_id>` - Unban user
 
 ---
 
-## 🏗️ Architecture
+## 🎭 How to Create Role Menus (NEW!)
+
+### Step 1: Run the command
+```
+/create-role-menu
+```
+
+### Step 2: Fill in the form
+
+A Discord form will pop up with the following fields:
+
+**Menu Title:**
+```
+Choose Your Region
+```
+
+**Menu Description:**
+```
+Select your region from the dropdown below to get region-specific announcements!
+```
+
+**Roles (one per line):**
+Format: `emoji role_id label`
+```
+🇺🇸 1234567890 North America
+🇪🇺 1234567891 Europe
+🇦🇸 1234567892 Asia
+🇦🇫 1234567893 Africa
+```
+
+**Exclusive? (yes/no):**
+```
+yes
+```
+
+### Step 3: Submit!
+
+The bot will create a beautiful embed with a dropdown menu containing your custom emojis and labels!
+
+**Tips:**
+- Get role IDs by right-clicking roles (enable Developer Mode in Discord)
+- Use any emoji you want (standard or custom)
+- Set "yes" for exclusive if users should only pick ONE role
+- Set "no" for multi-select if users can pick multiple roles
+
+---
+
+## ⚙️ Configuration
+
+Edit `config.yaml`:
+
+```yaml
+database:
+  mongodb_uri: "${MONGODB_URI}"
+  database_name: "Logiq"
+
+modules:
+  verification:
+    enabled: true
+  moderation:
+    enabled: true
+  leveling:
+    enabled: true
+    xp_per_message: 10
+    xp_cooldown: 60
+  economy:
+    enabled: true
+    currency_name: "Coins"
+    currency_symbol: "💎"
+    starting_balance: 1000
+    daily_reward: 100
+
+web:
+  enabled: true
+  port: "${PORT}"
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Bot Not Starting
+```bash
+python --version  # Ensure Python 3.11+
+cat .env          # Check DISCORD_BOT_TOKEN is set
+```
+
+### Commands Not Showing
+1. Run `/sync` command in Discord
+2. Wait 1 hour for global sync
+3. Restart Discord app
+
+### Database Connection Error
+- Ensure MongoDB URI is correct
+- Check MongoDB Atlas IP whitelist (allow all: 0.0.0.0/0)
+
+---
+
+## 📁 Project Structure
 
 ```
-Logiq/
-├── main.py                 # Entry point
-├── config.yaml            # Configuration
-├── requirements.txt       # Dependencies
+logiq/
+├── main.py              # Entry point
+├── config.yaml          # Configuration
+├── .env                 # Environment variables
+├── requirements.txt     # Dependencies
+├── railway.json         # Railway config
+├── runtime.txt          # Python version
 │
-├── cogs/                  # Command modules
-│   ├── verification.py
-│   ├── moderation.py
-│   ├── roles.py
-│   ├── leveling.py
-│   ├── economy.py
-│   ├── ai_chat.py
-│   ├── utility.py
-│   ├── music.py
-│   ├── tickets.py
-│   ├── analytics.py
-│   ├── games.py
-│   └── admin.py
+├── cogs/               # Feature modules
+│   ├── verification.py  # DM verification
+│   ├── moderation.py    # Moderation tools
+│   ├── roles.py         # Role management (FORM-BASED!)
+│   ├── leveling.py      # XP system
+│   ├── economy.py       # Currency system
+│   ├── utility.py       # Utility commands
+│   ├── tickets.py       # Support tickets
+│   ├── analytics.py     # Analytics tracking
+│   ├── games.py         # Button-based games
+│   └── admin.py         # Bot management
 │
-├── database/              # Database layer
+├── database/           # Database layer
 │   ├── db_manager.py
 │   └── models.py
 │
-├── utils/                 # Utilities
+├── utils/              # Utilities
 │   ├── embeds.py
 │   ├── logger.py
 │   ├── permissions.py
 │   ├── converters.py
 │   └── constants.py
 │
-├── web/                   # Web API
-│   └── api.py
-│
-└── tests/                 # Unit tests
-    ├── test_database.py
-    └── test_utils.py
+└── web/                # API endpoints
+    └── api.py
 ```
-
----
-
-## 🌐 Web API
-
-When web module is enabled, the bot exposes a REST API on port 8000.
-
-### Endpoints
-
-- `GET /` - API information
-- `GET /stats` - Bot statistics
-- `GET /guilds` - List guilds
-- `GET /guilds/{guild_id}` - Guild details
-- `GET /guilds/{guild_id}/leaderboard` - Guild leaderboard
-- `GET /guilds/{guild_id}/analytics` - Guild analytics
-- `GET /health` - Health check
-- `GET /modules` - Module status
-
-### Example
-```bash
-curl http://localhost:8000/stats
-```
-
----
-
-## 🧪 Testing
-
-Run unit tests:
-```bash
-pytest
-```
-
-Run with coverage:
-```bash
-pytest --cov=. --cov-report=html
-```
-
----
-
-## 📊 Database Schema
-
-### Collections
-
-- **users**: User data (XP, balance, inventory, warnings)
-- **guilds**: Guild configuration
-- **tickets**: Support tickets
-- **analytics**: Event logs
-- **reminders**: Scheduled reminders
-- **shop**: Shop items
 
 ---
 
 ## 🔒 Security
 
 - Never commit `.env` file
-- Use environment variables for sensitive data
-- Implement rate limiting
-- Validate all user inputs
-- Use Discord permissions properly
-- Regular security audits
-
----
-
-## 🚢 Deployment
-
-### Railway
-
-1. Create new project
-2. Add MongoDB plugin
-3. Add environment variables
-4. Deploy from GitHub
-5. Configure domain (optional)
-
-### AWS ECS
-
-1. Build Docker image
-2. Push to ECR
-3. Create ECS cluster
-4. Create task definition
-5. Deploy service
-6. Configure load balancer
-
-### Heroku
-
-1. Create app
-2. Add MongoDB addon
-3. Set environment variables
-4. Deploy via Git
-5. Scale dynos
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+- Keep bot token private
+- Use environment variables for secrets
+- Regular dependency updates
 
 ---
 
 ## 📝 License
 
-This project is licensed under the MIT License - see LICENSE file for details.
+**PROPRIETARY LICENSE**
+
+Copyright (c) 2025 Programmify. All Rights Reserved.
+
+Logiq is owned and operated by Programmify. No person or entity is granted permission to use, copy, modify, merge, publish, distribute, sublicense, or sell copies of this software without explicit written permission from Programmify.
+
+See LICENSE file for full details.
 
 ---
 
-## 🙏 Acknowledgments
+## 💬 Support
 
-- [discord.py](https://github.com/Rapptz/discord.py) - Discord API wrapper
-- [Motor](https://github.com/mongodb/motor) - Async MongoDB driver
-- [FastAPI](https://fastapi.tiangolo.com/) - Web framework
-- [OpenAI](https://openai.com/) - AI services
+For licensing inquiries or support, contact Programmify.
 
 ---
 
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/Logiq/issues)
-- **Discord**: [Support Server](https://discord.gg/your-invite)
-- **Documentation**: [Wiki](https://github.com/yourusername/Logiq/wiki)
-
----
-
-## 🗺️ Roadmap
-
-- [ ] Advanced music features
-- [ ] Web dashboard UI
-- [ ] Custom commands system
-- [ ] Backup/restore functionality
-- [ ] Multi-language support
-- [ ] Advanced analytics charts
-- [ ] Integration with more AI providers
-- [ ] Premium features
-
----
-
-**Made with ❤️ by the Logiq team**
+**Built by Programmify with ❤️**

@@ -1,6 +1,6 @@
 """
 Roles Cog for Logiq
-Self-assignable roles with exclusive categories
+Self-assignable roles with modal-based setup
 """
 
 import discord
@@ -16,29 +16,148 @@ from database.db_manager import DatabaseManager
 logger = logging.getLogger(__name__)
 
 
+class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
+    """Modal for creating role menus with custom settings"""
+
+    title_input = discord.ui.TextInput(
+        label="Menu Title",
+        placeholder="e.g., Choose Your Roles",
+        required=True,
+        max_length=100
+    )
+
+    description_input = discord.ui.TextInput(
+        label="Menu Description",
+        placeholder="e.g., Select your preferred roles from the dropdown below",
+        style=discord.TextStyle.paragraph,
+        required=False,
+        max_length=500
+    )
+
+    role_data = discord.ui.TextInput(
+        label="Roles (one per line)",
+        placeholder="Format: emoji role_id label\nExample:\n🎮 123456789 Gamer\n🎨 987654321 Artist",
+        style=discord.TextStyle.paragraph,
+        required=True,
+        max_length=1000
+    )
+
+    exclusive = discord.ui.TextInput(
+        label="Exclusive? (yes/no)",
+        placeholder="Type 'yes' if users can only pick ONE role",
+        required=True,
+        max_length=3
+    )
+
+    def __init__(self, cog, channel):
+        super().__init__()
+        self.cog = cog
+        self.channel = channel
+
+    async def on_submit(self, interaction: discord.Interaction):
+        """Handle modal submission"""
+        try:
+            # Parse exclusive setting
+            is_exclusive = self.exclusive.value.lower() in ['yes', 'y', 'true']
+
+            # Parse role data
+            role_list = []
+            for line in self.role_data.value.strip().split('\n'):
+                parts = line.strip().split(maxsplit=2)
+                if len(parts) >= 2:
+                    emoji = parts[0] if len(parts) >= 1 else "🎭"
+                    role_id = parts[1].strip('<@&>')
+                    label = parts[2] if len(parts) >= 3 else None
+
+                    try:
+                        role = interaction.guild.get_role(int(role_id))
+                        if role:
+                            role_list.append({
+                                'role': role,
+                                'emoji': emoji,
+                                'label': label or role.name
+                            })
+                    except ValueError:
+                        continue
+
+            if not role_list:
+                await interaction.response.send_message(
+                    embed=EmbedFactory.error("Invalid Roles", "Could not parse any valid roles. Please check your format."),
+                    ephemeral=True
+                )
+                return
+
+            if len(role_list) > 25:
+                await interaction.response.send_message(
+                    embed=EmbedFactory.error("Too Many Roles", "Discord allows maximum 25 options per menu."),
+                    ephemeral=True
+                )
+                return
+
+            # Create embed
+            embed = EmbedFactory.create(
+                title=self.title_input.value,
+                description=self.description_input.value or "Select your roles from the dropdown below.",
+                color=EmbedColor.PRIMARY
+            )
+
+            # Add field showing available roles
+            roles_text = "\n".join([f"{r['emoji']} **{r['label']}**" for r in role_list])
+            embed.add_field(
+                name="Available Roles",
+                value=roles_text,
+                inline=False
+            )
+
+            # Create view
+            if is_exclusive:
+                view = ExclusiveRoleView(role_list, self.title_input.value)
+            else:
+                view = MultiRoleView(role_list)
+
+            # Send to channel
+            await self.channel.send(embed=embed, view=view)
+
+            await interaction.response.send_message(
+                embed=EmbedFactory.success(
+                    "Role Menu Created!",
+                    f"{'Exclusive' if is_exclusive else 'Multi-select'} role menu created in {self.channel.mention}"
+                ),
+                ephemeral=True
+            )
+
+            logger.info(f"Role menu created by {interaction.user} with {len(role_list)} roles")
+
+        except Exception as e:
+            logger.error(f"Error creating role menu: {e}", exc_info=True)
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", f"Failed to create role menu: {str(e)}"),
+                ephemeral=True
+            )
+
+
 class ExclusiveRoleSelect(discord.ui.Select):
     """Dropdown for exclusive role selection (pick only one)"""
 
-    def __init__(self, roles: List[discord.Role], category_name: str):
+    def __init__(self, role_data: List[dict], category_name: str):
         options = [
             discord.SelectOption(
-                label=role.name,
-                description=f"Select {role.name}",
-                value=str(role.id),
-                emoji="🎭"
+                label=r['label'],
+                description=f"Get the {r['label']} role",
+                value=str(r['role'].id),
+                emoji=r['emoji']
             )
-            for role in roles[:25]
+            for r in role_data[:25]
         ]
 
         super().__init__(
-            placeholder=f"Choose your {category_name}",
+            placeholder=f"Choose your option...",
             min_values=1,
             max_values=1,
             options=options,
-            custom_id=f"exclusive_role_{category_name}"
+            custom_id=f"exclusive_role_{category_name[:50]}"
         )
-        self.role_ids = [role.id for role in roles]
-        self.category_name = category_name
+        self.role_ids = [r['role'].id for r in role_data]
 
     async def callback(self, interaction: discord.Interaction):
         """Handle exclusive role selection"""
@@ -68,46 +187,38 @@ class ExclusiveRoleSelect(discord.ui.Select):
                 await interaction.user.add_roles(selected_role)
 
             embed = EmbedFactory.success(
-                "Role Updated",
-                f"You now have the {selected_role.mention} role!"
+                "✅ Role Updated!",
+                f"You now have the **{selected_role.name}** role!"
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except discord.Forbidden:
             await interaction.response.send_message(
-                embed=EmbedFactory.error("Error", "I don't have permission to manage roles"),
+                embed=EmbedFactory.error("Error", "I don't have permission to manage your roles."),
                 ephemeral=True
             )
 
 
-class ExclusiveRoleView(discord.ui.View):
-    """View for exclusive role selection"""
-
-    def __init__(self, roles: List[discord.Role], category_name: str):
-        super().__init__(timeout=None)
-        self.add_item(ExclusiveRoleSelect(roles, category_name))
-
-
-class RoleSelectMenu(discord.ui.Select):
+class MultiRoleSelect(discord.ui.Select):
     """Dropdown menu for multiple role selection"""
 
-    def __init__(self, roles: List[discord.Role]):
+    def __init__(self, role_data: List[dict]):
         options = [
             discord.SelectOption(
-                label=role.name,
-                description=f"Get the {role.name} role",
-                value=str(role.id),
-                emoji="🎭"
+                label=r['label'],
+                description=f"Toggle {r['label']} role",
+                value=str(r['role'].id),
+                emoji=r['emoji']
             )
-            for role in roles[:25]
+            for r in role_data[:25]
         ]
 
         super().__init__(
-            placeholder="Select roles to add/remove",
+            placeholder="Select roles to add/remove...",
             min_values=0,
             max_values=len(options),
             options=options,
-            custom_id="role_select"
+            custom_id="multi_role_select"
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -136,28 +247,42 @@ class RoleSelectMenu(discord.ui.Select):
             if roles_to_remove:
                 await interaction.user.remove_roles(*roles_to_remove)
 
-            added_text = ", ".join([r.mention for r in roles_to_add]) if roles_to_add else "None"
-            removed_text = ", ".join([r.mention for r in roles_to_remove]) if roles_to_remove else "None"
+            changes = []
+            if roles_to_add:
+                changes.append(f"**Added:** {', '.join([r.name for r in roles_to_add])}")
+            if roles_to_remove:
+                changes.append(f"**Removed:** {', '.join([r.name for r in roles_to_remove])}")
+
+            if not changes:
+                changes.append("No changes made")
 
             embed = EmbedFactory.success(
-                "Roles Updated",
-                f"**Added:** {added_text}\n**Removed:** {removed_text}"
+                "✅ Roles Updated!",
+                "\n".join(changes)
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except discord.Forbidden:
             await interaction.response.send_message(
-                embed=EmbedFactory.error("Error", "I don't have permission to manage roles"),
+                embed=EmbedFactory.error("Error", "I don't have permission to manage your roles."),
                 ephemeral=True
             )
 
 
-class RoleSelectView(discord.ui.View):
-    """View containing role select menu"""
+class ExclusiveRoleView(discord.ui.View):
+    """View for exclusive role selection"""
 
-    def __init__(self, roles: List[discord.Role]):
+    def __init__(self, role_data: List[dict], category_name: str):
         super().__init__(timeout=None)
-        self.add_item(RoleSelectMenu(roles))
+        self.add_item(ExclusiveRoleSelect(role_data, category_name))
+
+
+class MultiRoleView(discord.ui.View):
+    """View for multi role selection"""
+
+    def __init__(self, role_data: List[dict]):
+        super().__init__(timeout=None)
+        self.add_item(MultiRoleSelect(role_data))
 
 
 class Roles(commands.Cog):
@@ -168,103 +293,13 @@ class Roles(commands.Cog):
         self.db = db
         self.config = config
         self.module_config = config.get('modules', {}).get('roles', {})
-        self.self_assign_roles = {}
 
-    @app_commands.command(name="exclusive-role-category", description="Create exclusive role category (pick one only)")
-    @app_commands.describe(
-        category_name="Name of the category (e.g., Region, Team)",
-        roles="Roles to include (mention them)"
-    )
+    @app_commands.command(name="create-role-menu", description="Create a role menu with a form (Admin)")
     @is_admin()
-    async def exclusive_role_category(self, interaction: discord.Interaction, category_name: str, roles: str):
-        """Create exclusive role category"""
-        role_list = []
-        for role_mention in roles.split():
-            role_id = role_mention.strip('<@&>')
-            try:
-                role = interaction.guild.get_role(int(role_id))
-                if role and not role.is_bot_managed() and not role.is_premium_subscriber():
-                    role_list.append(role)
-            except ValueError:
-                continue
-
-        if not role_list:
-            await interaction.response.send_message(
-                embed=EmbedFactory.error("No Valid Roles", "Please mention valid roles"),
-                ephemeral=True
-            )
-            return
-
-        if len(role_list) > 25:
-            await interaction.response.send_message(
-                embed=EmbedFactory.error("Too Many Roles", "Maximum 25 roles per category"),
-                ephemeral=True
-            )
-            return
-
-        embed = EmbedFactory.create(
-            title=f"🎭 {category_name}",
-            description=f"Select ONE {category_name} from the dropdown below.\n\n"
-                       "**Available Options:**\n" + "\n".join([f"• {role.mention}" for role in role_list]),
-            color=EmbedColor.PRIMARY
-        )
-
-        view = ExclusiveRoleView(role_list, category_name)
-
-        await interaction.channel.send(embed=embed, view=view)
-        await interaction.response.send_message(
-            embed=EmbedFactory.success("Category Created", f"Exclusive role category '{category_name}' created!"),
-            ephemeral=True
-        )
-
-        logger.info(f"Exclusive role category '{category_name}' created in {interaction.guild}")
-
-    @app_commands.command(name="role-menu", description="Create multi-select role menu")
-    @app_commands.describe(roles="Roles to make self-assignable (mention them)")
-    @is_admin()
-    async def role_menu(self, interaction: discord.Interaction, roles: str):
-        """Create role selection menu"""
-        role_list = []
-        for role_mention in roles.split():
-            role_id = role_mention.strip('<@&>')
-            try:
-                role = interaction.guild.get_role(int(role_id))
-                if role and not role.is_bot_managed() and not role.is_premium_subscriber():
-                    role_list.append(role)
-            except ValueError:
-                continue
-
-        if not role_list:
-            await interaction.response.send_message(
-                embed=EmbedFactory.error("No Valid Roles", "Please mention valid roles"),
-                ephemeral=True
-            )
-            return
-
-        if len(role_list) > 25:
-            await interaction.response.send_message(
-                embed=EmbedFactory.error("Too Many Roles", "Maximum 25 roles per menu"),
-                ephemeral=True
-            )
-            return
-
-        embed = EmbedFactory.create(
-            title="🎭 Self-Assignable Roles",
-            description="Select roles from the dropdown menu below.\n\n"
-                       "**Available Roles:**\n" + "\n".join([f"• {role.mention}" for role in role_list]),
-            color=EmbedColor.PRIMARY
-        )
-
-        view = RoleSelectView(role_list)
-
-        await interaction.channel.send(embed=embed, view=view)
-        await interaction.response.send_message(
-            embed=EmbedFactory.success("Menu Created", "Role menu has been created!"),
-            ephemeral=True
-        )
-
-        self.self_assign_roles[interaction.guild.id] = [role.id for role in role_list]
-        logger.info(f"Role menu created in {interaction.guild} with {len(role_list)} roles")
+    async def create_role_menu(self, interaction: discord.Interaction):
+        """Create role menu using a form"""
+        modal = RoleMenuSetupModal(self, interaction.channel)
+        await interaction.response.send_modal(modal)
 
     @app_commands.command(name="addrole", description="Add a role to a user (Admin)")
     @app_commands.describe(user="User to add role to", role="Role to add")
