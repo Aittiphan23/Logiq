@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(del Dockerfile docker-compose.yml .dockerignore)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
