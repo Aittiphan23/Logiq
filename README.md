@@ -153,9 +153,10 @@ ENVIRONMENT=production
 
 #### Roles (FORM-BASED!)
 - `/create-role-menu` - **Opens a form to create role menu!**
-  - Fill in title, description, emojis, and role IDs
+  - Fill in title, description, emojis, and mention roles with @
+  - Discord auto-completes role names when you type @
   - Choose exclusive (pick one) or multi-select
-  - Automatically creates beautiful dropdown menu
+  - Automatically creates beautiful dropdown menu for users
 - `/addrole <user> <role>` - Add role to user
 - `/removerole <user> <role>` - Remove role from user
 
@@ -199,7 +200,7 @@ ENVIRONMENT=production
 
 ---
 
-## 🎭 How to Create Role Menus (NEW!)
+## 🎭 How to Create Role Menus (SUPER EASY!)
 
 ### Step 1: Run the command
 ```
@@ -217,16 +218,20 @@ Choose Your Region
 
 **Menu Description:**
 ```
-Select your region from the dropdown below to get region-specific announcements!
+Select your region from the dropdown below!
 ```
 
-**Roles (one per line):**
-Format: `emoji role_id label`
+**Roles (mention with @):**
+Simply type `@` and select roles - that's it! The bot will use the role's actual name and emoji.
 ```
-🇺🇸 1234567890 North America
-🇪🇺 1234567891 Europe
-🇦🇸 1234567892 Asia
-🇦🇫 1234567893 Africa
+@USA @Europe @Asia @Africa
+```
+Or one per line:
+```
+@USA
+@Europe
+@Asia
+@Africa
 ```
 
 **Exclusive? (yes/no):**
@@ -236,13 +241,16 @@ yes
 
 ### Step 3: Submit!
 
-The bot will create a beautiful embed with a dropdown menu containing your custom emojis and labels!
+The bot will create a beautiful dropdown menu with the roles' actual names and emojis!
 
 **Tips:**
-- Get role IDs by right-clicking roles (enable Developer Mode in Discord)
-- Use any emoji you want (standard or custom)
-- Set "yes" for exclusive if users should only pick ONE role
+- Just type `@` and Discord will show you all available roles to pick from
+- The bot automatically uses the role's actual emoji (if it has one) or a default 🎭
+- The bot automatically uses the role's actual name
+- Set "yes" for exclusive if users can only pick ONE role
 - Set "no" for multi-select if users can pick multiple roles
+- After you submit, a beautiful dropdown menu appears for users to select from!
+- Users click the dropdown and see all the roles you added
 
 ---
 

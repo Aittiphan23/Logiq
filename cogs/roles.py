@@ -34,9 +34,9 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
         max_length=500
     )
 
-    role_data = discord.ui.TextInput(
-        label="Roles (one per line)",
-        placeholder="Format: emoji role_id label\nExample:\n🎮 123456789 Gamer\n🎨 987654321 Artist",
+    role_mentions = discord.ui.TextInput(
+        label="Roles (mention with @)",
+        placeholder="Just type @ and select roles. One per line or separated by spaces.\nExample: @Gamer @Artist @Developer",
         style=discord.TextStyle.paragraph,
         required=True,
         max_length=1000
@@ -60,29 +60,33 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
             # Parse exclusive setting
             is_exclusive = self.exclusive.value.lower() in ['yes', 'y', 'true']
 
-            # Parse role data
+            # Parse role mentions - extract all role IDs from mentions
             role_list = []
-            for line in self.role_data.value.strip().split('\n'):
-                parts = line.strip().split(maxsplit=2)
-                if len(parts) >= 2:
-                    emoji = parts[0] if len(parts) >= 1 else "🎭"
-                    role_id = parts[1].strip('<@&>')
-                    label = parts[2] if len(parts) >= 3 else None
+            text = self.role_mentions.value
 
-                    try:
-                        role = interaction.guild.get_role(int(role_id))
-                        if role:
-                            role_list.append({
-                                'role': role,
-                                'emoji': emoji,
-                                'label': label or role.name
-                            })
-                    except ValueError:
-                        continue
+            # Find all role mentions in format <@&123456789>
+            import re
+            role_ids = re.findall(r'<@&(\d+)>', text)
+
+            for role_id in role_ids:
+                role = interaction.guild.get_role(int(role_id))
+                if role and not role.is_bot_managed() and not role.is_premium_subscriber():
+                    # Use role's own emoji if it has one, otherwise default
+                    role_emoji = None
+                    if role.unicode_emoji:
+                        role_emoji = role.unicode_emoji
+                    elif role.icon:
+                        role_emoji = str(role.icon)
+
+                    role_list.append({
+                        'role': role,
+                        'emoji': role_emoji or "🎭",  # Default emoji if role has none
+                        'label': role.name  # Use actual role name
+                    })
 
             if not role_list:
                 await interaction.response.send_message(
-                    embed=EmbedFactory.error("Invalid Roles", "Could not parse any valid roles. Please check your format."),
+                    embed=EmbedFactory.error("No Valid Roles", "Please mention valid roles using @. Example: @Gamer @Artist"),
                     ephemeral=True
                 )
                 return
@@ -102,7 +106,7 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
             )
 
             # Add field showing available roles
-            roles_text = "\n".join([f"{r['emoji']} **{r['label']}**" for r in role_list])
+            roles_text = "\n".join([f"{r['emoji']} {r['role'].mention}" for r in role_list])
             embed.add_field(
                 name="Available Roles",
                 value=roles_text,
