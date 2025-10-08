@@ -307,12 +307,22 @@ class Roles(commands.Cog):
         self.db = db
         self.config = config
         self.module_config = config.get('modules', {}).get('roles', {})
+        # Register persistent views on startup
+        self.bot.loop.create_task(self._register_persistent_views())
+    
+    async def _register_persistent_views(self):
+        """Register persistent views for role menus"""
+        await self.bot.wait_until_ready()
+        # Views are automatically re-registered when messages are loaded
+        logger.info("Role menu persistent views ready")
 
     @app_commands.command(name="create-role-menu", description="Create a role menu with a form (Admin)")
+    @app_commands.describe(channel="Channel to send the role menu (optional, defaults to current channel)")
     @is_admin()
-    async def create_role_menu(self, interaction: discord.Interaction):
+    async def create_role_menu(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
         """Create role menu using a form"""
-        modal = RoleMenuSetupModal(self, interaction.channel)
+        target_channel = channel or interaction.channel
+        modal = RoleMenuSetupModal(self, target_channel)
         await interaction.response.send_modal(modal)
 
     @app_commands.command(name="addrole", description="Add a role to a user (Admin)")

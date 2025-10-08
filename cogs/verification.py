@@ -68,7 +68,7 @@ class Verification(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        """Handle new member join - Send DM verification + Welcome channel message"""
+        """Handle new member join - Send welcome message and verification"""
         if not self.module_config.get('enabled', True):
             return
 
@@ -78,9 +78,10 @@ class Verification(commands.Cog):
 
         verified_role_id = guild_config.get('verified_role')
         verification_type = guild_config.get('verification_type', 'button')
+        verification_method = guild_config.get('verification_method', 'dm')  # 'dm' or 'channel'
         welcome_message = guild_config.get('welcome_message',
             f"Welcome to **{member.guild.name}**! 👋\n\n"
-            "Please verify yourself by clicking the button below to gain access to the server."
+            "Please verify yourself to gain access to the server."
         )
 
         # Send welcome message in welcome channel (PUBLIC)
@@ -97,12 +98,52 @@ class Verification(commands.Cog):
                 await welcome_channel.send(embed=welcome_embed)
                 logger.info(f"Sent welcome message for {member} in {welcome_channel}")
 
-        # Send DM verification (PRIVATE) only if verified_role is configured
+        # Send verification only if verified_role is configured
         if not verified_role_id:
             return
 
+        # Send verification to verify channel (if configured)
+        verify_channel_id = guild_config.get('verify_channel')
+        if verification_method == 'channel' and verify_channel_id:
+            verify_channel = member.guild.get_channel(verify_channel_id)
+            if verify_channel:
+                try:
+                    if verification_type == 'button':
+                        embed = EmbedFactory.create(
+                            title=f"🔐 Verify Yourself",
+                            description=f"{member.mention}, click the button below to verify and gain access to the server.",
+                            color=EmbedColor.PRIMARY
+                        )
+                        view = VerificationButton(self)
+                        await verify_channel.send(embed=embed, view=view)
+                        logger.info(f"Sent verification to channel for {member}")
+                    elif verification_type == 'captcha':
+                        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                        embed = EmbedFactory.create(
+                            title=f"🔐 Verify Yourself",
+                            description=f"{member.mention}\n\n**Your verification code:** `{code}`\n\nClick the button below and enter this code.",
+                            color=EmbedColor.PRIMARY
+                        )
+                        button = discord.ui.Button(label="Enter Code", style=discord.ButtonStyle.green, custom_id=f"captcha_{member.id}")
+
+                        async def captcha_callback(interaction: discord.Interaction):
+                            if interaction.user.id != member.id:
+                                await interaction.response.send_message("This verification is not for you!", ephemeral=True)
+                                return
+                            modal = CaptchaModal(code, self)
+                            await interaction.response.send_modal(modal)
+
+                        button.callback = captcha_callback
+                        view = discord.ui.View(timeout=None)
+                        view.add_item(button)
+                        await verify_channel.send(embed=embed, view=view)
+                        logger.info(f"Sent captcha verification to channel for {member}")
+                except Exception as e:
+                    logger.error(f"Error sending verification to channel: {e}", exc_info=True)
+            return
+
+        # Send DM verification (PRIVATE) - fallback or if method is 'dm'
         try:
-            # Send DM to user with verification
             if verification_type == 'button':
                 embed = EmbedFactory.create(
                     title=f"🔐 Welcome to {member.guild.name}",
@@ -114,7 +155,6 @@ class Verification(commands.Cog):
                 await member.send(embed=embed, view=view)
 
             elif verification_type == 'captcha':
-                # Generate captcha code
                 code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
                 embed = EmbedFactory.create(
                     title=f"🔐 Welcome to {member.guild.name}",
@@ -141,10 +181,7 @@ class Verification(commands.Cog):
             logger.info(f"Sent DM verification to {member} in {member.guild}")
 
         except discord.Forbidden:
-            # User has DMs disabled - log but don't announce publicly
             logger.warning(f"Could not DM {member} in {member.guild} - DMs disabled")
-
-            # Optionally send to log channel if configured
             log_channel_id = guild_config.get('log_channel')
             if log_channel_id:
                 log_channel = member.guild.get_channel(log_channel_id)
@@ -221,6 +258,8 @@ class Verification(commands.Cog):
     @app_commands.describe(
         role="Role to assign upon verification",
         welcome_channel="Channel to send welcome messages",
+        method="Verification method: 'dm' or 'channel'",
+        verify_channel="Channel for verification (REQUIRED if method is 'channel')",
         verification_type="Type of verification (button/captcha)"
     )
     @is_admin()
@@ -229,9 +268,27 @@ class Verification(commands.Cog):
         interaction: discord.Interaction,
         role: discord.Role,
         welcome_channel: discord.TextChannel,
+        method: str,
+        verify_channel: Optional[discord.TextChannel] = None,
         verification_type: str = "button"
     ):
-        """Setup verification system - DM based (ADMIN ONLY)"""
+        """Setup verification system (ADMIN ONLY)"""
+        method = method.lower()
+        
+        if method not in ['dm', 'channel']:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Invalid Method", "Method must be 'dm' or 'channel'"),
+                ephemeral=True
+            )
+            return
+        
+        if method == 'channel' and not verify_channel:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Missing Channel", "You must specify a verify_channel when using 'channel' method"),
+                ephemeral=True
+            )
+            return
+        
         if verification_type not in ['button', 'captcha']:
             await interaction.response.send_message(
                 embed=EmbedFactory.error("Invalid Type", "Verification type must be 'button' or 'captcha'"),
@@ -243,22 +300,35 @@ class Verification(commands.Cog):
         if not guild_config:
             guild_config = await self.db.create_guild(interaction.guild.id)
 
-        await self.db.update_guild(interaction.guild.id, {
+        update_data = {
             'verified_role': role.id,
             'welcome_channel': welcome_channel.id,
-            'verification_type': verification_type
-        })
+            'verification_type': verification_type,
+            'verification_method': method
+        }
+        
+        if method == 'channel' and verify_channel:
+            update_data['verify_channel'] = verify_channel.id
 
+        await self.db.update_guild(interaction.guild.id, update_data)
+
+        if method == 'channel':
+            method_text = f"**Verification Channel:** {verify_channel.mention}"
+            location_text = f"in {verify_channel.mention}"
+        else:
+            method_text = "**Method:** DM (Private Messages)"
+            location_text = "via DM"
+        
         embed = EmbedFactory.success(
             "✅ Verification Setup Complete",
             f"**Verified Role:** {role.mention}\n"
             f"**Welcome Channel:** {welcome_channel.mention}\n"
-            f"**Type:** {verification_type}\n"
-            f"**Method:** DM (Private)\n\n"
-            "New members will see a welcome message in the welcome channel and receive a DM with a verification button."
+            f"{method_text}\n"
+            f"**Type:** {verification_type}\n\n"
+            f"New members will receive a welcome message in {welcome_channel.mention} and verification will be sent {location_text}."
         )
         await interaction.response.send_message(embed=embed)
-        logger.info(f"Verification setup completed in {interaction.guild}")
+        logger.info(f"Verification setup completed in {interaction.guild} with method: {method}")
 
     @app_commands.command(name="set-welcome-message", description="Set custom welcome DM message (Admin)")
     @app_commands.describe(message="Custom welcome message for new members")

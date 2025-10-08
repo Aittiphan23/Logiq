@@ -370,6 +370,211 @@ class Moderation(commands.Cog):
                 ephemeral=True
             )
 
+    @app_commands.command(name="clear", description="Clear messages in channel")
+    @app_commands.describe(
+        amount="Number of messages to delete (1-100)",
+        user="Only delete messages from this user (optional)"
+    )
+    @is_moderator()
+    async def clear(
+        self,
+        interaction: discord.Interaction,
+        amount: int,
+        user: Optional[discord.Member] = None
+    ):
+        """Clear messages from channel"""
+        if amount < 1 or amount > 100:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Invalid Amount", "Amount must be between 1 and 100"),
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        try:
+            def check(m):
+                if user:
+                    return m.author.id == user.id
+                return True
+
+            deleted = await interaction.channel.purge(limit=amount, check=check)
+            
+            target_text = f" from {user.mention}" if user else ""
+            embed = EmbedFactory.success(
+                "Messages Cleared",
+                f"Deleted **{len(deleted)}** messages{target_text}"
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+            # Log action
+            log_embed = EmbedFactory.create(
+                title="🗑️ Messages Cleared",
+                description=f"**Channel:** {interaction.channel.mention}\n"
+                           f"**Moderator:** {interaction.user.mention}\n"
+                           f"**Amount:** {len(deleted)} messages{target_text}",
+                color=EmbedColor.WARNING
+            )
+            await self._log_action(interaction.guild, log_embed)
+            logger.info(f"{interaction.user} cleared {len(deleted)} messages in {interaction.channel}")
+
+        except discord.Forbidden:
+            await interaction.followup.send(
+                embed=EmbedFactory.error("Error", "I don't have permission to delete messages"),
+                ephemeral=True
+            )
+
+    @app_commands.command(name="slowmode", description="Set slowmode for channel")
+    @app_commands.describe(seconds="Slowmode delay in seconds (0 to disable)")
+    @is_moderator()
+    async def slowmode(self, interaction: discord.Interaction, seconds: int):
+        """Set slowmode for channel"""
+        if seconds < 0 or seconds > 21600:  # Max 6 hours
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Invalid Duration", "Slowmode must be between 0 and 21600 seconds (6 hours)"),
+                ephemeral=True
+            )
+            return
+
+        try:
+            await interaction.channel.edit(slowmode_delay=seconds)
+            
+            if seconds == 0:
+                embed = EmbedFactory.success("Slowmode Disabled", "Slowmode has been disabled")
+            else:
+                embed = EmbedFactory.success(
+                    "Slowmode Enabled",
+                    f"Slowmode set to **{seconds}** seconds"
+                )
+            
+            await interaction.response.send_message(embed=embed)
+
+            # Log action
+            log_embed = EmbedFactory.create(
+                title="⏱️ Slowmode Updated",
+                description=f"**Channel:** {interaction.channel.mention}\n"
+                           f"**Moderator:** {interaction.user.mention}\n"
+                           f"**Delay:** {seconds} seconds",
+                color=EmbedColor.INFO
+            )
+            await self._log_action(interaction.guild, log_embed)
+            logger.info(f"{interaction.user} set slowmode to {seconds}s in {interaction.channel}")
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", "I don't have permission to edit this channel"),
+                ephemeral=True
+            )
+
+    @app_commands.command(name="lock", description="Lock a channel")
+    @app_commands.describe(channel="Channel to lock (optional, defaults to current)")
+    @is_moderator()
+    async def lock(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
+        """Lock a channel"""
+        target_channel = channel or interaction.channel
+
+        try:
+            await target_channel.set_permissions(
+                interaction.guild.default_role,
+                send_messages=False
+            )
+            
+            embed = EmbedFactory.success("🔒 Channel Locked", f"{target_channel.mention} has been locked")
+            await interaction.response.send_message(embed=embed)
+
+            # Log action
+            log_embed = EmbedFactory.create(
+                title="🔒 Channel Locked",
+                description=f"**Channel:** {target_channel.mention}\n"
+                           f"**Moderator:** {interaction.user.mention}",
+                color=EmbedColor.WARNING
+            )
+            await self._log_action(interaction.guild, log_embed)
+            logger.info(f"{interaction.user} locked {target_channel}")
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", "I don't have permission to edit this channel"),
+                ephemeral=True
+            )
+
+    @app_commands.command(name="unlock", description="Unlock a channel")
+    @app_commands.describe(channel="Channel to unlock (optional, defaults to current)")
+    @is_moderator()
+    async def unlock(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
+        """Unlock a channel"""
+        target_channel = channel or interaction.channel
+
+        try:
+            await target_channel.set_permissions(
+                interaction.guild.default_role,
+                send_messages=None
+            )
+            
+            embed = EmbedFactory.success("🔓 Channel Unlocked", f"{target_channel.mention} has been unlocked")
+            await interaction.response.send_message(embed=embed)
+
+            # Log action
+            log_embed = EmbedFactory.create(
+                title="🔓 Channel Unlocked",
+                description=f"**Channel:** {target_channel.mention}\n"
+                           f"**Moderator:** {interaction.user.mention}",
+                color=EmbedColor.SUCCESS
+            )
+            await self._log_action(interaction.guild, log_embed)
+            logger.info(f"{interaction.user} unlocked {target_channel}")
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", "I don't have permission to edit this channel"),
+                ephemeral=True
+            )
+
+    @app_commands.command(name="nickname", description="Change a user's nickname")
+    @app_commands.describe(
+        user="User to change nickname",
+        nickname="New nickname (leave empty to reset)"
+    )
+    @is_moderator()
+    async def nickname(
+        self,
+        interaction: discord.Interaction,
+        user: discord.Member,
+        nickname: Optional[str] = None
+    ):
+        """Change user nickname"""
+        can_moderate, error = PermissionChecker.can_moderate(interaction.user, user)
+        if not can_moderate:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Cannot Change Nickname", error),
+                ephemeral=True
+            )
+            return
+
+        try:
+            old_nick = user.display_name
+            await user.edit(nick=nickname)
+            
+            if nickname:
+                embed = EmbedFactory.success(
+                    "Nickname Changed",
+                    f"Changed {user.mention}'s nickname from **{old_nick}** to **{nickname}**"
+                )
+            else:
+                embed = EmbedFactory.success(
+                    "Nickname Reset",
+                    f"Reset {user.mention}'s nickname"
+                )
+            
+            await interaction.response.send_message(embed=embed)
+            logger.info(f"{interaction.user} changed {user}'s nickname to {nickname}")
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", "I don't have permission to change this user's nickname"),
+                ephemeral=True
+            )
+
     async def _log_action(self, guild: discord.Guild, embed: discord.Embed):
         """Log moderation action to log channel"""
         guild_config = await self.db.get_guild(guild.id)

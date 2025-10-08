@@ -181,16 +181,47 @@ class Tickets(commands.Cog):
             )
             return
 
+        # Find ticket in database by channel_id
+        ticket_channel_id = interaction.channel.id
+        
+        # Log ticket closure to ticket log channel
+        ticket_log_channel_id = guild_config.get('ticket_log_channel') if guild_config else None
+        if ticket_log_channel_id:
+            log_channel = interaction.guild.get_channel(ticket_log_channel_id)
+            if log_channel:
+                # Get ticket creator from channel name
+                ticket_creator_name = interaction.channel.name.replace("ticket-", "")
+                
+                log_embed = EmbedFactory.create(
+                    title="🔒 Ticket Closed",
+                    description=f"**Ticket:** {interaction.channel.name}\n"
+                               f"**Closed by:** {interaction.user.mention}\n"
+                               f"**Reason:** {reason}\n"
+                               f"**Status:** Closed",
+                    color=EmbedColor.WARNING
+                )
+                await log_channel.send(embed=log_embed)
+
         embed = EmbedFactory.warning(
             "🔒 Ticket Closing",
             f"This ticket is being closed by {interaction.user.mention}.\n\n**Reason:** {reason}\n\n"
-            f"Channel will be deleted in 10 seconds..."
+            f"Channel will be deleted in 5 seconds..."
         )
         await interaction.response.send_message(embed=embed)
 
         logger.info(f"Ticket {interaction.channel.name} closed by {interaction.user}")
 
-        await discord.utils.sleep_until(discord.utils.utcnow() + discord.timedelta(seconds=10))
+        # Update ticket status in database
+        try:
+            # Find and update ticket by channel_id
+            await self.db.db.tickets.update_one(
+                {"channel_id": ticket_channel_id},
+                {"$set": {"status": "closed", "closed_by": interaction.user.id, "close_reason": reason}}
+            )
+        except Exception as e:
+            logger.error(f"Error updating ticket in database: {e}")
+
+        await discord.utils.sleep_until(discord.utils.utcnow() + discord.timedelta(seconds=5))
 
         try:
             await interaction.channel.delete()
@@ -200,6 +231,7 @@ class Tickets(commands.Cog):
     @app_commands.command(name="ticket-setup", description="Setup ticket system (Admin)")
     @app_commands.describe(
         category="Category for ticket channels",
+        log_channel="Channel for ticket logs",
         support_role="Role to ping for new tickets (optional)"
     )
     @is_admin()
@@ -207,6 +239,7 @@ class Tickets(commands.Cog):
         self,
         interaction: discord.Interaction,
         category: discord.CategoryChannel,
+        log_channel: discord.TextChannel,
         support_role: Optional[discord.Role] = None
     ):
         """Setup ticket system (ADMIN ONLY)"""
@@ -214,7 +247,10 @@ class Tickets(commands.Cog):
         if not guild_config:
             guild_config = await self.db.create_guild(interaction.guild.id)
 
-        update_data = {'ticket_category': category.id}
+        update_data = {
+            'ticket_category': category.id,
+            'ticket_log_channel': log_channel.id
+        }
         if support_role:
             update_data['support_role'] = support_role.id
 
@@ -222,7 +258,8 @@ class Tickets(commands.Cog):
 
         embed = EmbedFactory.success(
             "✅ Ticket System Setup",
-            f"**Category:** {category.mention}\n" +
+            f"**Category:** {category.mention}\n"
+            f"**Log Channel:** {log_channel.mention}\n" +
             (f"**Support Role:** {support_role.mention}" if support_role else "")
         )
         await interaction.response.send_message(embed=embed)
@@ -252,6 +289,57 @@ class Tickets(commands.Cog):
     async def close_ticket(self, interaction: discord.Interaction, reason: Optional[str] = "Resolved"):
         """Close a ticket (ADMIN/STAFF ONLY)"""
         await self.close_ticket_for_user(interaction, reason)
+
+    @app_commands.command(name="tickets", description="View all active tickets (Admin)")
+    @is_admin()
+    async def view_tickets(self, interaction: discord.Interaction):
+        """View all active tickets (ADMIN ONLY)"""
+        guild_config = await self.db.get_guild(interaction.guild.id)
+        if not guild_config:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Not Configured", "Ticket system not configured"),
+                ephemeral=True
+            )
+            return
+
+        ticket_category_id = guild_config.get('ticket_category')
+        if not ticket_category_id:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Not Configured", "Ticket category not set up"),
+                ephemeral=True
+            )
+            return
+
+        category = interaction.guild.get_channel(ticket_category_id)
+        if not category or not isinstance(category, discord.CategoryChannel):
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", "Ticket category not found"),
+                ephemeral=True
+            )
+            return
+
+        # Get all ticket channels
+        ticket_channels = [ch for ch in category.channels if ch.name.startswith("ticket-")]
+        
+        if not ticket_channels:
+            await interaction.response.send_message(
+                embed=EmbedFactory.info("No Active Tickets", "There are currently no active tickets"),
+                ephemeral=True
+            )
+            return
+
+        description = ""
+        for channel in ticket_channels[:25]:  # Limit to 25
+            ticket_owner = channel.name.replace("ticket-", "")
+            description += f"🎫 {channel.mention} - **{ticket_owner}**\n"
+
+        embed = EmbedFactory.create(
+            title=f"🎫 Active Tickets ({len(ticket_channels)})",
+            description=description,
+            color=EmbedColor.INFO
+        )
+        
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: commands.Bot):

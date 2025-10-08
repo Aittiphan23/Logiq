@@ -213,6 +213,56 @@ class Games(commands.Cog):
                 "question": "Which programming language is known as the 'mother of all languages'?",
                 "options": ["C", "Assembly", "Fortran", "COBOL"],
                 "answer": 0
+            },
+            {
+                "question": "What does HTML stand for?",
+                "options": ["Hyper Text Markup Language", "High Tech Modern Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language"],
+                "answer": 0
+            },
+            {
+                "question": "Who is known as the father of computers?",
+                "options": ["Charles Babbage", "Alan Turing", "Bill Gates", "Steve Jobs"],
+                "answer": 0
+            },
+            {
+                "question": "What year was the first iPhone released?",
+                "options": ["2005", "2006", "2007", "2008"],
+                "answer": 2
+            },
+            {
+                "question": "What does RAM stand for?",
+                "options": ["Random Access Memory", "Read Access Memory", "Rapid Access Memory", "Run Access Memory"],
+                "answer": 0
+            },
+            {
+                "question": "Which company created JavaScript?",
+                "options": ["Microsoft", "Netscape", "Google", "Apple"],
+                "answer": 1
+            },
+            {
+                "question": "What is the capital of France?",
+                "options": ["London", "Berlin", "Paris", "Madrid"],
+                "answer": 2
+            },
+            {
+                "question": "How many continents are there?",
+                "options": ["5", "6", "7", "8"],
+                "answer": 2
+            },
+            {
+                "question": "What is the largest planet in our solar system?",
+                "options": ["Earth", "Mars", "Jupiter", "Saturn"],
+                "answer": 2
+            },
+            {
+                "question": "Who painted the Mona Lisa?",
+                "options": ["Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Michelangelo"],
+                "answer": 2
+            },
+            {
+                "question": "What is the speed of light?",
+                "options": ["299,792 km/s", "150,000 km/s", "500,000 km/s", "1,000,000 km/s"],
+                "answer": 0
             }
         ]
 
