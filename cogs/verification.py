@@ -149,7 +149,6 @@ class Verification(commands.Cog):
         welcome_message = welcome_message_template.replace('{user}', member.mention)
         welcome_message = welcome_message.replace('{username}', member.display_name)
         welcome_message = welcome_message.replace('{server}', member.guild.name)
-        
         # Replace channel names with mentions (e.g., "verify-channel" -> #verify-channel)
         import re
         for channel in member.guild.text_channels:
@@ -157,10 +156,12 @@ class Verification(commands.Cog):
             welcome_message = welcome_message.replace(channel.name, channel.mention)
             welcome_message = welcome_message.replace(f"#{channel.name}", channel.mention)
         
+        # Send welcome message in welcome channel (PUBLIC - everyone can see)
         welcome_channel_id = guild_config.get('welcome_channel')
         if welcome_channel_id:
             welcome_channel = member.guild.get_channel(welcome_channel_id)
             if welcome_channel:
+                # Make sure everyone can see the welcome channel
                 welcome_embed = EmbedFactory.create(
                     title=f"👋 Welcome to {member.guild.name}!",
                     description=f"{member.mention}\n\n{welcome_message}",
@@ -180,15 +181,10 @@ class Verification(commands.Cog):
             verify_channel = member.guild.get_channel(verify_channel_id)
             if verify_channel:
                 try:
-                    # Get custom welcome message or use default
-                    verification_message = guild_config.get('welcome_message', 
-                        f"Welcome to **{member.guild.name}**! Please verify to gain access."
-                    )
-                    
                     if verification_type == 'button':
                         embed = EmbedFactory.create(
                             title=f"🔐 Verification",
-                            description=f"{member.mention}\n\n{verification_message}",
+                            description=f"{member.mention}, click the button below to verify.",
                             color=EmbedColor.PRIMARY
                         )
                         view = VerificationButton(self)
@@ -196,23 +192,48 @@ class Verification(commands.Cog):
                         logger.info(f"Sent verification to channel for {member}")
                     elif verification_type == 'captcha':
                         code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                        
+                        # Create a view with button that shows code only to the user
+                        class CaptchaView(discord.ui.View):
+                            def __init__(self, user_id, verification_code, cog):
+                                super().__init__(timeout=None)
+                                self.user_id = user_id
+                                self.code = verification_code
+                                self.cog = cog
+                            
+                            @discord.ui.button(label="Show My Code", style=discord.ButtonStyle.primary, emoji="🔐")
+                            async def show_code(self, interaction: discord.Interaction, button: discord.ui.Button):
+                                if interaction.user.id != self.user_id:
+                                    await interaction.response.send_message("This is not for you!", ephemeral=True)
+                                    return
+                                await interaction.response.send_message(
+                                    f"Your verification code: `{self.code}`\n\nClick the button below to enter it.",
+                                    ephemeral=True,
+                                    view=CaptchaEntryView(self.user_id, self.code, self.cog)
+                                )
+                        
+                        class CaptchaEntryView(discord.ui.View):
+                            def __init__(self, user_id, verification_code, cog):
+                                super().__init__(timeout=None)
+                                self.user_id = user_id
+                                self.code = verification_code
+                                self.cog = cog
+                            
+                            @discord.ui.button(label="Enter Code", style=discord.ButtonStyle.success, emoji="✅")
+                            async def enter_code(self, interaction: discord.Interaction, button: discord.ui.Button):
+                                if interaction.user.id != self.user_id:
+                                    await interaction.response.send_message("This is not for you!", ephemeral=True)
+                                    return
+                                modal = CaptchaModal(self.code, self.cog)
+                                await interaction.response.send_modal(modal)
+                        
                         embed = EmbedFactory.create(
                             title=f"🔐 Verification",
-                            description=f"{member.mention}\n\n{verification_message}\n\n**Your verification code:** `{code}`",
+                            description=f"{member.mention}, click the button below to see your verification code (only you will see it).",
                             color=EmbedColor.PRIMARY
                         )
-                        button = discord.ui.Button(label="Enter Code", style=discord.ButtonStyle.green, custom_id=f"captcha_{member.id}")
-
-                        async def captcha_callback(interaction: discord.Interaction):
-                            if interaction.user.id != member.id:
-                                await interaction.response.send_message("This verification is not for you!", ephemeral=True)
-                                return
-                            modal = CaptchaModal(code, self)
-                            await interaction.response.send_modal(modal)
-
-                        button.callback = captcha_callback
-                        view = discord.ui.View(timeout=None)
-                        view.add_item(button)
+                        
+                        view = CaptchaView(member.id, code, self)
                         await verify_channel.send(embed=embed, view=view, delete_after=300)
                         logger.info(f"Sent captcha verification to channel for {member}")
                 except Exception as e:
