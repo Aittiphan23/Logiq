@@ -213,10 +213,15 @@ async def main():
         print("Error: DISCORD_BOT_TOKEN not set in environment variables or config.yaml")
         sys.exit(1)
 
+    # Start health check server for Railway (if PORT is set)
+    if os.getenv('PORT'):
+        from healthcheck import start_health_check
+        start_health_check()
+
     # Create and start bot
     bot = Logiq(config)
 
-    # Just run the Discord bot (no web server)
+    # Just run the Discord bot
     await bot.start(token)
 
 
