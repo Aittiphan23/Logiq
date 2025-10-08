@@ -183,11 +183,7 @@ async def start_web_server(bot: Logiq):
         app = create_app(bot)
         web_config = bot.config.get('web', {})
         host = web_config.get('host', '0.0.0.0')
-
-        # Get port from config (which may be from env var) or Railway's PORT env var
-        port_config = web_config.get('port', 8000)
-        # Handle case where PORT env var is set (Railway uses this)
-        port = int(os.getenv('PORT', port_config if not str(port_config).startswith('${') else 8000))
+        port = web_config.get('port', 8000)
 
         # Run in background
         config = uvicorn.Config(app, host=host, port=port, log_level="info")
@@ -213,16 +209,16 @@ async def main():
         print("Error: DISCORD_BOT_TOKEN not set in environment variables or config.yaml")
         sys.exit(1)
 
-    # Start health check server for Railway (if PORT is set)
-    if os.getenv('PORT'):
-        from healthcheck import start_health_check
-        start_health_check()
-
     # Create and start bot
     bot = Logiq(config)
 
-    # Just run the Discord bot
-    await bot.start(token)
+    async with bot:
+        # Start web server in background if enabled
+        if config.get('web', {}).get('enabled', False):
+            bot.loop.create_task(start_web_server(bot))
+
+        # Start bot
+        await bot.start(token)
 
 
 if __name__ == '__main__':
