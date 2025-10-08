@@ -216,13 +216,8 @@ async def main():
     # Create and start bot
     bot = Logiq(config)
 
-    async with bot:
-        # Start web server in background if enabled
-        if config.get('web', {}).get('enabled', False):
-            bot.loop.create_task(start_web_server(bot))
-
-        # Start bot
-        await bot.start(token)
+    # Just run the Discord bot (no web server)
+    await bot.start(token)
 
 
 if __name__ == '__main__':

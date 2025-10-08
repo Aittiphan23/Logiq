@@ -282,8 +282,7 @@ modules:
     daily_reward: 100
 
 web:
-  enabled: true
-  port: "${PORT}"
+  enabled: false  # No web dashboard needed
 ```
 
 ---
