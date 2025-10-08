@@ -66,9 +66,20 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
         text = self.role_mentions.value
         role_ids = re.findall(r'<@&(\d+)>', text)
 
+        if not role_ids:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("No Roles Found", "Please mention roles using @. Type @ and select roles from the list that appears."),
+                ephemeral=True
+            )
+            return
+
         for role_id in role_ids:
             role = interaction.guild.get_role(int(role_id))
-            if role and not role.is_bot_managed() and not role.is_premium_subscriber():
+            if role:
+                # Skip @everyone and bot integration roles
+                if role.is_default() or role.is_integration():
+                    continue
+                    
                 role_emoji = None
                 if role.unicode_emoji:
                     role_emoji = role.unicode_emoji
@@ -83,7 +94,7 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
 
         if not role_list:
             await interaction.response.send_message(
-                embed=EmbedFactory.error("No Valid Roles", "Please mention valid roles using @. Example: @Gamer @Artist"),
+                embed=EmbedFactory.error("No Valid Roles", f"Found {len(role_ids)} role mentions but they cannot be used (might be bot roles or @everyone)."),
                 ephemeral=True
             )
             return
