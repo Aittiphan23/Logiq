@@ -164,7 +164,25 @@ class ExclusiveRoleSelect(discord.ui.Select):
         self.role_ids = [r['role'].id for r in role_data]
 
     async def callback(self, interaction: discord.Interaction):
-        """Handle exclusive role selection"""
+        """Handle exclusive role selection - LOCKED after first selection"""
+        # Check if user already has any role from this category
+        user_has_role = False
+        for role_id in self.role_ids:
+            role = interaction.guild.get_role(role_id)
+            if role and role in interaction.user.roles:
+                user_has_role = True
+                break
+
+        if user_has_role:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error(
+                    "🔒 Role Already Selected",
+                    "You have already selected a role in this category. You cannot change it unless you leave and rejoin the server."
+                ),
+                ephemeral=True
+            )
+            return
+
         selected_role_id = int(self.values[0])
         selected_role = interaction.guild.get_role(selected_role_id)
 
@@ -175,26 +193,18 @@ class ExclusiveRoleSelect(discord.ui.Select):
             )
             return
 
-        # Remove all other roles in this category
-        roles_to_remove = []
-        for role_id in self.role_ids:
-            if role_id != selected_role_id:
-                role = interaction.guild.get_role(role_id)
-                if role and role in interaction.user.roles:
-                    roles_to_remove.append(role)
-
         try:
-            if roles_to_remove:
-                await interaction.user.remove_roles(*roles_to_remove)
-
-            if selected_role not in interaction.user.roles:
-                await interaction.user.add_roles(selected_role)
+            # Give the selected role
+            await interaction.user.add_roles(selected_role)
 
             embed = EmbedFactory.success(
-                "✅ Role Updated!",
-                f"You now have the **{selected_role.name}** role!"
+                "✅ Role Selected!",
+                f"You now have the **{selected_role.name}** role and access to its channels!\n\n"
+                f"**Note:** This selection is permanent. You cannot change it unless you leave and rejoin the server."
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
+
+            logger.info(f"{interaction.user} selected role {selected_role.name} (locked)")
 
         except discord.Forbidden:
             await interaction.response.send_message(

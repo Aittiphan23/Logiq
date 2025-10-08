@@ -32,8 +32,9 @@ python main.py
 ## 📦 Features
 
 ### 🔐 Verification System
+- **Welcome channel messages** - Public welcome for all new members
 - **DM-based verification** - Private verification via DMs
-- **No public announcements** - Silent role assignment
+- **Silent role assignment** - No spam in chat
 - **Custom welcome messages** - Personalized greetings
 - **Button or CAPTCHA** - Flexible verification methods
 
@@ -52,10 +53,10 @@ python main.py
 
 ### 🎭 Role Management (FORM-BASED SETUP!)
 - **Easy form setup** - Create role menus with a Discord form
-- **Custom emojis** - Add emojis to each role option
-- **Custom labels** - Name roles however you want
+- **Auto emoji & name** - Uses role's actual emoji and name
 - **Custom title & description** - Fully customizable embed
-- **Exclusive roles** - Pick one, others auto-removed
+- **Exclusive roles (LOCKED)** - Pick one role, cannot change unless leave/rejoin
+- **Auto channel access** - Selecting role grants access to role's channels
 - **Multi-select** - Choose multiple roles
 - **Beautiful dropdowns** - User-friendly interface
 
@@ -139,8 +140,8 @@ ENVIRONMENT=production
 ### 🔧 ADMIN COMMANDS (Administrators only)
 
 #### Verification
-- `/setup-verification <role> [type]` - Setup DM verification
-- `/set-welcome-message <message>` - Custom welcome DM
+- `/setup-verification <role> <welcome_channel> [type]` - Setup verification & welcome channel
+- `/set-welcome-message <message>` - Custom welcome message
 - `/send-verification` - Send verification button
 
 #### Tickets
@@ -247,10 +248,11 @@ The bot will create a beautiful dropdown menu with the roles' actual names and e
 - Just type `@` and Discord will show you all available roles to pick from
 - The bot automatically uses the role's actual emoji (if it has one) or a default 🎭
 - The bot automatically uses the role's actual name
-- Set "yes" for exclusive if users can only pick ONE role
+- Set "yes" for **EXCLUSIVE (LOCKED)** - users can only pick ONE role and CANNOT change it unless they leave and rejoin
 - Set "no" for multi-select if users can pick multiple roles
 - After you submit, a beautiful dropdown menu appears for users to select from!
-- Users click the dropdown and see all the roles you added
+- When users select a role, they automatically get access to that role's channels
+- **IMPORTANT:** For exclusive roles, once selected, the choice is LOCKED permanently (until user leaves server)
 
 ---
 

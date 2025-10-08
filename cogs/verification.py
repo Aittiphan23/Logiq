@@ -68,7 +68,7 @@ class Verification(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        """Handle new member join - Send DM verification (PRIVATE)"""
+        """Handle new member join - Send DM verification + Welcome channel message"""
         if not self.module_config.get('enabled', True):
             return
 
@@ -77,14 +77,29 @@ class Verification(commands.Cog):
             return
 
         verified_role_id = guild_config.get('verified_role')
-        if not verified_role_id:
-            return
-
         verification_type = guild_config.get('verification_type', 'button')
         welcome_message = guild_config.get('welcome_message',
             f"Welcome to **{member.guild.name}**! 👋\n\n"
             "Please verify yourself by clicking the button below to gain access to the server."
         )
+
+        # Send welcome message in welcome channel (PUBLIC)
+        welcome_channel_id = guild_config.get('welcome_channel')
+        if welcome_channel_id:
+            welcome_channel = member.guild.get_channel(welcome_channel_id)
+            if welcome_channel:
+                welcome_embed = EmbedFactory.create(
+                    title=f"👋 Welcome to {member.guild.name}!",
+                    description=f"{member.mention} has joined the server!\n\n{welcome_message}",
+                    color=EmbedColor.SUCCESS
+                )
+                welcome_embed.set_thumbnail(url=member.display_avatar.url)
+                await welcome_channel.send(embed=welcome_embed)
+                logger.info(f"Sent welcome message for {member} in {welcome_channel}")
+
+        # Send DM verification (PRIVATE) only if verified_role is configured
+        if not verified_role_id:
+            return
 
         try:
             # Send DM to user with verification
@@ -205,6 +220,7 @@ class Verification(commands.Cog):
     @app_commands.command(name="setup-verification", description="Setup verification system (Admin)")
     @app_commands.describe(
         role="Role to assign upon verification",
+        welcome_channel="Channel to send welcome messages",
         verification_type="Type of verification (button/captcha)"
     )
     @is_admin()
@@ -212,6 +228,7 @@ class Verification(commands.Cog):
         self,
         interaction: discord.Interaction,
         role: discord.Role,
+        welcome_channel: discord.TextChannel,
         verification_type: str = "button"
     ):
         """Setup verification system - DM based (ADMIN ONLY)"""
@@ -228,15 +245,17 @@ class Verification(commands.Cog):
 
         await self.db.update_guild(interaction.guild.id, {
             'verified_role': role.id,
+            'welcome_channel': welcome_channel.id,
             'verification_type': verification_type
         })
 
         embed = EmbedFactory.success(
             "✅ Verification Setup Complete",
             f"**Verified Role:** {role.mention}\n"
+            f"**Welcome Channel:** {welcome_channel.mention}\n"
             f"**Type:** {verification_type}\n"
             f"**Method:** DM (Private)\n\n"
-            "New members will receive a DM with a verification button."
+            "New members will see a welcome message in the welcome channel and receive a DM with a verification button."
         )
         await interaction.response.send_message(embed=embed)
         logger.info(f"Verification setup completed in {interaction.guild}")
