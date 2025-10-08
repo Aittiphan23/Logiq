@@ -152,7 +152,7 @@ class Verification(commands.Cog):
             if welcome_channel:
                 welcome_embed = EmbedFactory.create(
                     title=f"👋 Welcome to {member.guild.name}!",
-                    description=f"{member.mention} has joined the server!\n\n{welcome_message}",
+                    description=f"{member.mention}\n\n{welcome_message}",
                     color=EmbedColor.SUCCESS
                 )
                 welcome_embed.set_thumbnail(url=member.display_avatar.url)
@@ -169,21 +169,25 @@ class Verification(commands.Cog):
             verify_channel = member.guild.get_channel(verify_channel_id)
             if verify_channel:
                 try:
+                    # Get custom welcome message or use default
+                    verification_message = guild_config.get('welcome_message', 
+                        f"Welcome to **{member.guild.name}**! Please verify to gain access."
+                    )
+                    
                     if verification_type == 'button':
                         embed = EmbedFactory.create(
-                            title=f"🔐 Verify Yourself",
-                            description=f"Click the button below to verify and gain access to the server.",
+                            title=f"🔐 Verification",
+                            description=f"{member.mention}\n\n{verification_message}",
                             color=EmbedColor.PRIMARY
                         )
                         view = VerificationButton(self)
-                        # Send as ephemeral-like message by mentioning user and deleting after verification
-                        msg = await verify_channel.send(f"{member.mention}", embed=embed, view=view, delete_after=300)
+                        msg = await verify_channel.send(embed=embed, view=view, delete_after=300)
                         logger.info(f"Sent verification to channel for {member}")
                     elif verification_type == 'captcha':
                         code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
                         embed = EmbedFactory.create(
-                            title=f"🔐 Verify Yourself",
-                            description=f"**Your verification code:** `{code}`\n\nClick the button below and enter this code.",
+                            title=f"🔐 Verification",
+                            description=f"{member.mention}\n\n{verification_message}\n\n**Your verification code:** `{code}`",
                             color=EmbedColor.PRIMARY
                         )
                         button = discord.ui.Button(label="Enter Code", style=discord.ButtonStyle.green, custom_id=f"captcha_{member.id}")
@@ -198,7 +202,7 @@ class Verification(commands.Cog):
                         button.callback = captcha_callback
                         view = discord.ui.View(timeout=None)
                         view.add_item(button)
-                        await verify_channel.send(f"{member.mention}", embed=embed, view=view, delete_after=300)
+                        await verify_channel.send(embed=embed, view=view, delete_after=300)
                         logger.info(f"Sent captcha verification to channel for {member}")
                 except Exception as e:
                     logger.error(f"Error sending verification to channel: {e}", exc_info=True)
