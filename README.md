@@ -1,10 +1,15 @@
 # 🤖 Logiq - Open Source Discord Bot
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Discord.py](https://img.shields.io/badge/discord.py-2.3+-blue.svg)](https://github.com/Rapptz/discord.py)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+
 **The Open-Source Alternative to MEE6**
 
-A feature-rich, fully open-source Discord bot with all the premium features you need - completely free!
+A feature-rich, fully open-source Discord bot with all the premium features you need - completely free! Built by **Programmify** and the open-source community.
 
-Owned and operated by **Programmify** - All rights reserved.
+🌟 **Star this repo** if you find it useful!
 
 ---
 
@@ -454,21 +459,199 @@ logiq/
 
 ---
 
-## 📝 License
+## 🤝 Contributing
 
-**PROPRIETARY LICENSE**
+We welcome contributions from the community! Here's how you can help:
 
-Copyright (c) 2025 Programmify. All Rights Reserved.
+### Getting Started
 
-Logiq is owned and operated by Programmify. No person or entity is granted permission to use, copy, modify, merge, publish, distribute, sublicense, or sell copies of this software without explicit written permission from Programmify.
+1. **Fork the repository**
+   ```bash
+   # Click the "Fork" button on GitHub
+   ```
 
-See LICENSE file for full details.
+2. **Clone your fork**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/Logiq.git
+   cd Logiq
+   ```
+
+3. **Create a branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+4. **Make your changes**
+   - Follow existing code style
+   - Add comments for complex logic
+   - Test your changes thoroughly
+
+5. **Commit and push**
+   ```bash
+   git add .
+   git commit -m "Add: your feature description"
+   git push origin feature/your-feature-name
+   ```
+
+6. **Create a Pull Request**
+   - Go to your fork on GitHub
+   - Click "New Pull Request"
+   - Describe your changes clearly
+
+### Contribution Guidelines
+
+#### Code Style
+- Use **4 spaces** for indentation
+- Follow **PEP 8** Python style guide
+- Add **docstrings** to functions and classes
+- Keep functions **small and focused**
+
+#### Commit Messages
+- Use clear, descriptive commit messages
+- Start with a verb: `Add`, `Fix`, `Update`, `Remove`
+- Examples:
+  - ✅ `Add: trivia game with 20 questions`
+  - ✅ `Fix: role menu timeout issue`
+  - ✅ `Update: verification system documentation`
+  - ❌ `fixed stuff`
+  - ❌ `updates`
+
+#### Pull Request Guidelines
+- **One feature per PR** - Keep PRs focused
+- **Test your code** - Ensure it works before submitting
+- **Update documentation** - If you add features, update README
+- **Describe your changes** - Explain what and why
+- **Link issues** - Reference any related issues
+
+### What Can You Contribute?
+
+#### 🐛 Bug Fixes
+- Fix existing bugs
+- Improve error handling
+- Optimize performance
+
+#### ✨ New Features
+- Add new commands
+- Create new game modes
+- Integrate new APIs
+- Add new moderation tools
+
+#### 📚 Documentation
+- Improve README
+- Add code comments
+- Create tutorials
+- Write guides
+
+#### 🎨 UI/UX Improvements
+- Better embed designs
+- Improved button layouts
+- Enhanced user feedback
+
+#### 🧪 Testing
+- Write unit tests
+- Test edge cases
+- Report bugs
+
+### Ideas for Contributions
+
+**Easy (Good First Issues)**
+- Add more trivia questions
+- Improve embed colors/styling
+- Add new 8-ball responses
+- Fix typos in messages
+
+**Medium**
+- Add new game types
+- Improve logging system
+- Add more economy features
+- Create new utility commands
+
+**Advanced**
+- Add AI chat features
+- Create web dashboard
+- Implement advanced analytics
+- Add voice channel features
+
+### Development Setup
+
+1. **Install development dependencies**
+   ```bash
+   pip install -r requirements.txt
+   pip install pytest black flake8  # Testing and linting
+   ```
+
+2. **Set up pre-commit hooks** (optional)
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
+
+3. **Run tests**
+   ```bash
+   pytest tests/
+   ```
+
+4. **Format code**
+   ```bash
+   black .
+   flake8 .
+   ```
+
+### Code Review Process
+
+1. Maintainers will review your PR
+2. Address any requested changes
+3. Once approved, your PR will be merged
+4. Your contribution will be credited!
+
+### Community Guidelines
+
+- Be respectful and inclusive
+- Help others learn
+- Give constructive feedback
+- Celebrate contributions
 
 ---
 
-## 💬 Support
+## 📝 License
 
-For licensing inquiries or support, contact Programmify.
+**MIT License**
+
+Copyright (c) 2025 Programmify
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+See [LICENSE](LICENSE) file for full details.
+
+---
+
+## 💬 Support & Community
+
+### Get Help
+- 📖 **Documentation**: Read this README thoroughly
+- 🐛 **Bug Reports**: [Open an issue](https://github.com/Programmify/Logiq/issues)
+- 💡 **Feature Requests**: [Open an issue](https://github.com/Programmify/Logiq/issues)
+- 💬 **Discord Community**: Join Programmify Discord server
+- 📧 **Email**: contact@programmify.com
+
+### Stay Updated
+- ⭐ **Star this repo** to get updates
+- 👀 **Watch** for new releases
+- 🔔 **Follow** Programmify on GitHub
+
+### Contributors
+
+Thanks to all contributors who help make Logiq better!
+
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+<!-- This section will be automatically updated -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+Want to see your name here? [Contribute now!](#-contributing)
 
 ---
 
