@@ -8,6 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 from typing import Optional
 import logging
+import asyncio
 
 from utils.embeds import EmbedFactory, EmbedColor
 from utils.permissions import is_admin
@@ -139,6 +140,21 @@ class Tickets(commands.Cog):
             # Add close button
             close_view = TicketControlView(self)
             await channel.send(embed=embed, view=close_view)
+            
+            # Log ticket creation to ticket log channel
+            ticket_log_channel_id = guild_config.get('ticket_log_channel')
+            if ticket_log_channel_id:
+                log_channel = interaction.guild.get_channel(ticket_log_channel_id)
+                if log_channel:
+                    log_embed = EmbedFactory.create(
+                        title="🎫 New Ticket Created",
+                        description=f"**Ticket:** {channel.mention}\n"
+                                   f"**Created by:** {interaction.user.mention}\n"
+                                   f"**Ticket ID:** {ticket_id}\n"
+                                   f"**Status:** Open",
+                        color=EmbedColor.SUCCESS
+                    )
+                    await log_channel.send(embed=log_embed)
 
             await interaction.response.send_message(
                 embed=EmbedFactory.success(
@@ -221,12 +237,16 @@ class Tickets(commands.Cog):
         except Exception as e:
             logger.error(f"Error updating ticket in database: {e}")
 
-        await discord.utils.sleep_until(discord.utils.utcnow() + discord.timedelta(seconds=5))
+        # Wait 5 seconds then delete the channel
+        await asyncio.sleep(5)
 
         try:
-            await interaction.channel.delete()
+            await interaction.channel.delete(reason=f"Ticket closed by {interaction.user}")
+            logger.info(f"Deleted ticket channel: {interaction.channel.name}")
         except discord.Forbidden:
-            pass
+            logger.error(f"No permission to delete ticket channel: {interaction.channel.name}")
+        except Exception as e:
+            logger.error(f"Error deleting ticket channel: {e}")
 
     @app_commands.command(name="ticket-setup", description="Setup ticket system (Admin)")
     @app_commands.describe(
