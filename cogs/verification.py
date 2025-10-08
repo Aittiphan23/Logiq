@@ -23,10 +23,10 @@ class VerificationSetupModal(discord.ui.Modal, title="Verification Setup"):
 
     welcome_message = discord.ui.TextInput(
         label="Welcome Message",
-        placeholder="Welcome to our server! Please verify to gain access.",
+        placeholder="Use {username} for name, {user} for mention. Mention channels with #channel-name",
         style=discord.TextStyle.paragraph,
         required=True,
-        max_length=500
+        max_length=2000
     )
 
     def __init__(self, cog, role, welcome_channel, method, verify_channel, verification_type):

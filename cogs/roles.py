@@ -57,9 +57,6 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
     async def on_submit(self, interaction: discord.Interaction):
         """Handle modal submission"""
         try:
-            # Respond immediately to prevent timeout
-            await interaction.response.defer(ephemeral=True)
-            
             # Parse exclusive setting
             is_exclusive = self.exclusive.value.lower() in ['yes', 'y', 'true']
 
@@ -83,19 +80,19 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
 
                     role_list.append({
                         'role': role,
-                        'emoji': role_emoji or "🎭",  # Default emoji if role has none
-                        'label': role.name  # Use actual role name
+                        'emoji': role_emoji or "🎭",
+                        'label': role.name
                     })
 
             if not role_list:
-                await interaction.followup.send(
+                await interaction.response.send_message(
                     embed=EmbedFactory.error("No Valid Roles", "Please mention valid roles using @. Example: @Gamer @Artist"),
                     ephemeral=True
                 )
                 return
 
             if len(role_list) > 25:
-                await interaction.followup.send(
+                await interaction.response.send_message(
                     embed=EmbedFactory.error("Too Many Roles", "Discord allows maximum 25 options per menu."),
                     ephemeral=True
                 )
@@ -122,10 +119,11 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
             else:
                 view = MultiRoleView(role_list)
 
-            # Send to channel
+            # Send to channel first
             await self.channel.send(embed=embed, view=view)
 
-            await interaction.followup.send(
+            # Then respond to interaction
+            await interaction.response.send_message(
                 embed=EmbedFactory.success(
                     "Role Menu Created!",
                     f"{'Exclusive' if is_exclusive else 'Multi-select'} role menu created in {self.channel.mention}"
@@ -137,13 +135,10 @@ class RoleMenuSetupModal(discord.ui.Modal, title="Create Role Menu"):
 
         except Exception as e:
             logger.error(f"Error creating role menu: {e}", exc_info=True)
-            try:
-                await interaction.followup.send(
-                    embed=EmbedFactory.error("Error", f"Failed to create role menu: {str(e)}"),
-                    ephemeral=True
-                )
-            except:
-                pass
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", f"Failed to create role menu: {str(e)}"),
+                ephemeral=True
+            )
 
 
 class ExclusiveRoleSelect(discord.ui.Select):
