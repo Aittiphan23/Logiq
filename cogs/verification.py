@@ -23,7 +23,7 @@ class VerificationSetupModal(discord.ui.Modal, title="Verification Setup"):
 
     welcome_message = discord.ui.TextInput(
         label="Welcome Message",
-        placeholder="Use {username} for name, {user} for mention. Mention channels with #channel-name",
+        placeholder="Use {username} for name, {user} for @mention. Type channel names like: verify-channel",
         style=discord.TextStyle.paragraph,
         required=True,
         max_length=2000
@@ -139,13 +139,24 @@ class Verification(commands.Cog):
 
         verified_role_id = guild_config.get('verified_role')
         verification_type = guild_config.get('verification_type', 'button')
-        verification_method = guild_config.get('verification_method', 'dm')  # 'dm' or 'channel'
-        welcome_message = guild_config.get('welcome_message',
+        verification_method = guild_config.get('verification_method', 'dm')
+        welcome_message_template = guild_config.get('welcome_message',
             f"Welcome to **{member.guild.name}**! 👋\n\n"
             "Please verify yourself to gain access to the server."
         )
-
-        # Send welcome message in welcome channel (PUBLIC)
+        
+        # Replace placeholders with actual values
+        welcome_message = welcome_message_template.replace('{user}', member.mention)
+        welcome_message = welcome_message.replace('{username}', member.display_name)
+        welcome_message = welcome_message.replace('{server}', member.guild.name)
+        
+        # Replace channel names with mentions (e.g., "verify-channel" -> #verify-channel)
+        import re
+        for channel in member.guild.text_channels:
+            # Replace channel name patterns with actual mentions
+            welcome_message = welcome_message.replace(channel.name, channel.mention)
+            welcome_message = welcome_message.replace(f"#{channel.name}", channel.mention)
+        
         welcome_channel_id = guild_config.get('welcome_channel')
         if welcome_channel_id:
             welcome_channel = member.guild.get_channel(welcome_channel_id)
