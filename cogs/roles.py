@@ -318,14 +318,125 @@ class Roles(commands.Cog):
         # Views are automatically re-registered when messages are loaded
         logger.info("Role menu persistent views ready")
 
-    @app_commands.command(name="create-role-menu", description="Create a role menu with a form (Admin)")
-    @app_commands.describe(channel="Channel to send the role menu (optional, defaults to current channel)")
+    @app_commands.command(name="create-role-menu", description="Create a role menu (Admin)")
+    @app_commands.describe(
+        title="Title of the role menu",
+        description="Description of the role menu",
+        role1="First role",
+        role2="Second role (optional)",
+        role3="Third role (optional)",
+        role4="Fourth role (optional)",
+        role5="Fifth role (optional)",
+        role6="Sixth role (optional)",
+        role7="Seventh role (optional)",
+        role8="Eighth role (optional)",
+        role9="Ninth role (optional)",
+        role10="Tenth role (optional)",
+        exclusive="Can users only pick ONE role? (yes/no)",
+        channel="Channel to send menu (optional)"
+    )
     @is_admin()
-    async def create_role_menu(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
-        """Create role menu using a form"""
+    async def create_role_menu(
+        self,
+        interaction: discord.Interaction,
+        title: str,
+        description: str,
+        role1: discord.Role,
+        exclusive: str,
+        role2: Optional[discord.Role] = None,
+        role3: Optional[discord.Role] = None,
+        role4: Optional[discord.Role] = None,
+        role5: Optional[discord.Role] = None,
+        role6: Optional[discord.Role] = None,
+        role7: Optional[discord.Role] = None,
+        role8: Optional[discord.Role] = None,
+        role9: Optional[discord.Role] = None,
+        role10: Optional[discord.Role] = None,
+        channel: Optional[discord.TextChannel] = None
+    ):
+        """Create role menu directly with slash command"""
         target_channel = channel or interaction.channel
-        modal = RoleMenuSetupModal(self, target_channel)
-        await interaction.response.send_modal(modal)
+        is_exclusive = exclusive.lower() in ['yes', 'y', 'true']
+        
+        # Collect all roles
+        roles = [role1]
+        if role2:
+            roles.append(role2)
+        if role3:
+            roles.append(role3)
+        if role4:
+            roles.append(role4)
+        if role5:
+            roles.append(role5)
+        if role6:
+            roles.append(role6)
+        if role7:
+            roles.append(role7)
+        if role8:
+            roles.append(role8)
+        if role9:
+            roles.append(role9)
+        if role10:
+            roles.append(role10)
+        
+        # Build role list
+        role_list = []
+        for role in roles:
+            if role.is_default() or role.is_integration():
+                continue
+            
+            role_emoji = None
+            if role.unicode_emoji:
+                role_emoji = role.unicode_emoji
+            elif role.icon:
+                role_emoji = str(role.icon)
+            
+            role_list.append({
+                'role': role,
+                'emoji': role_emoji or "🎭",
+                'label': role.name
+            })
+        
+        if not role_list:
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("No Valid Roles", "Please select valid roles."),
+                ephemeral=True
+            )
+            return
+        
+        # Create embed
+        embed = EmbedFactory.create(
+            title=title,
+            description=description,
+            color=EmbedColor.PRIMARY
+        )
+        
+        # Add field showing available roles
+        roles_text = "\n".join([f"{r['emoji']} {r['role'].mention}" for r in role_list])
+        embed.add_field(
+            name="Available Roles",
+            value=roles_text,
+            inline=False
+        )
+        
+        # Create view
+        if is_exclusive:
+            view = ExclusiveRoleView(role_list, title)
+        else:
+            view = MultiRoleView(role_list)
+        
+        # Send to channel
+        await target_channel.send(embed=embed, view=view)
+        
+        await interaction.response.send_message(
+            embed=EmbedFactory.success(
+                "Role Menu Created!",
+                f"{'Exclusive' if is_exclusive else 'Multi-select'} role menu created in {target_channel.mention}"
+            ),
+            ephemeral=True
+        )
+        
+        logger.info(f"Role menu created by {interaction.user} with {len(role_list)} roles")
 
     @app_commands.command(name="addrole", description="Add a role to a user (Admin)")
     @app_commands.describe(user="User to add role to", role="Role to add")
