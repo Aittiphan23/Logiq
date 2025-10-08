@@ -168,19 +168,21 @@ class ExclusiveRoleSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         """Handle exclusive role selection - LOCKED after first selection"""
         try:
-            # Check if user already has any role from this category
+            # Check if user already has any role from THIS MENU ONLY
             user_has_role = False
+            existing_role = None
             for role_id in self.role_ids:
                 role = interaction.guild.get_role(role_id)
                 if role and role in interaction.user.roles:
                     user_has_role = True
+                    existing_role = role
                     break
 
             if user_has_role:
                 await interaction.response.send_message(
                     embed=EmbedFactory.error(
                         "🔒 Role Already Selected",
-                        "You have already selected a role in this category. You cannot change it unless you leave and rejoin the server."
+                        f"You already have **{existing_role.name}**. You cannot select another role from this menu."
                     ),
                     ephemeral=True
                 )
@@ -196,17 +198,17 @@ class ExclusiveRoleSelect(discord.ui.Select):
                 )
                 return
 
-            # Give the selected role
-            await interaction.user.add_roles(selected_role, reason="Role menu selection")
+            # Give the selected role (only this one, no removing others)
+            await interaction.user.add_roles(selected_role, reason="Exclusive role menu selection")
 
             embed = EmbedFactory.success(
                 "✅ Role Selected!",
-                f"You now have the **{selected_role.name}** role and access to its channels!\n\n"
-                f"**Note:** This selection is permanent. You cannot change it unless you leave and rejoin the server."
+                f"You now have the **{selected_role.name}** role!\n\n"
+                f"**Note:** You cannot select another role from this menu."
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-            logger.info(f"{interaction.user} selected role {selected_role.name} (locked)")
+            logger.info(f"{interaction.user} selected exclusive role {selected_role.name}")
 
         except discord.Forbidden:
             await interaction.response.send_message(
