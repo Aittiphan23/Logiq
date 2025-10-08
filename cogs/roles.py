@@ -167,37 +167,37 @@ class ExclusiveRoleSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         """Handle exclusive role selection - LOCKED after first selection"""
-        # Check if user already has any role from this category
-        user_has_role = False
-        for role_id in self.role_ids:
-            role = interaction.guild.get_role(role_id)
-            if role and role in interaction.user.roles:
-                user_has_role = True
-                break
-
-        if user_has_role:
-            await interaction.response.send_message(
-                embed=EmbedFactory.error(
-                    "🔒 Role Already Selected",
-                    "You have already selected a role in this category. You cannot change it unless you leave and rejoin the server."
-                ),
-                ephemeral=True
-            )
-            return
-
-        selected_role_id = int(self.values[0])
-        selected_role = interaction.guild.get_role(selected_role_id)
-
-        if not selected_role:
-            await interaction.response.send_message(
-                embed=EmbedFactory.error("Error", "Role not found"),
-                ephemeral=True
-            )
-            return
-
         try:
+            # Check if user already has any role from this category
+            user_has_role = False
+            for role_id in self.role_ids:
+                role = interaction.guild.get_role(role_id)
+                if role and role in interaction.user.roles:
+                    user_has_role = True
+                    break
+
+            if user_has_role:
+                await interaction.response.send_message(
+                    embed=EmbedFactory.error(
+                        "🔒 Role Already Selected",
+                        "You have already selected a role in this category. You cannot change it unless you leave and rejoin the server."
+                    ),
+                    ephemeral=True
+                )
+                return
+
+            selected_role_id = int(self.values[0])
+            selected_role = interaction.guild.get_role(selected_role_id)
+
+            if not selected_role:
+                await interaction.response.send_message(
+                    embed=EmbedFactory.error("Error", "Role not found"),
+                    ephemeral=True
+                )
+                return
+
             # Give the selected role
-            await interaction.user.add_roles(selected_role)
+            await interaction.user.add_roles(selected_role, reason="Role menu selection")
 
             embed = EmbedFactory.success(
                 "✅ Role Selected!",
@@ -210,7 +210,13 @@ class ExclusiveRoleSelect(discord.ui.Select):
 
         except discord.Forbidden:
             await interaction.response.send_message(
-                embed=EmbedFactory.error("Error", "I don't have permission to manage your roles."),
+                embed=EmbedFactory.error("Error", "I don't have permission to manage your roles. Please contact an admin."),
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error in role selection: {e}", exc_info=True)
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", f"Failed to assign role: {str(e)}"),
                 ephemeral=True
             )
 
@@ -239,29 +245,29 @@ class MultiRoleSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         """Handle role selection"""
-        selected_role_ids = {int(value) for value in self.values}
-        current_role_ids = {role.id for role in interaction.user.roles}
-
-        roles_to_add = []
-        roles_to_remove = []
-
-        available_role_ids = {int(option.value) for option in self.options}
-
-        for role_id in available_role_ids:
-            role = interaction.guild.get_role(role_id)
-            if not role:
-                continue
-
-            if role_id in selected_role_ids and role_id not in current_role_ids:
-                roles_to_add.append(role)
-            elif role_id not in selected_role_ids and role_id in current_role_ids:
-                roles_to_remove.append(role)
-
         try:
+            selected_role_ids = {int(value) for value in self.values}
+            current_role_ids = {role.id for role in interaction.user.roles}
+
+            roles_to_add = []
+            roles_to_remove = []
+
+            available_role_ids = {int(option.value) for option in self.options}
+
+            for role_id in available_role_ids:
+                role = interaction.guild.get_role(role_id)
+                if not role:
+                    continue
+
+                if role_id in selected_role_ids and role_id not in current_role_ids:
+                    roles_to_add.append(role)
+                elif role_id not in selected_role_ids and role_id in current_role_ids:
+                    roles_to_remove.append(role)
+
             if roles_to_add:
-                await interaction.user.add_roles(*roles_to_add)
+                await interaction.user.add_roles(*roles_to_add, reason="Role menu selection")
             if roles_to_remove:
-                await interaction.user.remove_roles(*roles_to_remove)
+                await interaction.user.remove_roles(*roles_to_remove, reason="Role menu deselection")
 
             changes = []
             if roles_to_add:
@@ -280,7 +286,13 @@ class MultiRoleSelect(discord.ui.Select):
 
         except discord.Forbidden:
             await interaction.response.send_message(
-                embed=EmbedFactory.error("Error", "I don't have permission to manage your roles."),
+                embed=EmbedFactory.error("Error", "I don't have permission to manage your roles. Please contact an admin."),
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error in multi-role selection: {e}", exc_info=True)
+            await interaction.response.send_message(
+                embed=EmbedFactory.error("Error", f"Failed to update roles: {str(e)}"),
                 ephemeral=True
             )
 
